@@ -1,7 +1,7 @@
 '''
 Module that specifies Encoder Architecture for AutoEncoder using PyTorch
 --------------------------------------------------------------------------------
-This is a Sample Code and Needs to be Modified based on the Problem Statement 
+This Code Needs to be Modified based on the Problem Statement 
 '''
 
 # Importing Necessary Libraries
