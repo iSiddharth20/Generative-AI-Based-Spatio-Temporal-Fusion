@@ -1,10 +1,14 @@
 '''
-Module that specifies Decoder Architecture with MaxEnt for AutoEncoder using PyTorch
+Module that specifies Decoder Architecture for AutoEncoder using PyTorch
 --------------------------------------------------------------------------------
-This is a Sample Code and Needs to be Modified based on the Problem Statement 
+Data Formats Used:
+    - low_res_image: [M x N] NumPy Array
+    - high_res_image: [M' x N'] NumPy Array
+--------------------------------------------------------------------------------
+This Code Needs to be Modified based on the Problem Statement 
 '''
 
-# Importing Necessary Libraries and Modules
+# Importing Necessary Libraries
 import torch.nn as nn
 from MaxEnt import MaxEnt
 
@@ -26,13 +30,19 @@ class Decoder(nn.Module):
         # Define the dropout parameter of the Decoder
         self.dropout = dropout
 
-    '''
-        Need to Combine MaxEnt and Decoder
-    '''     
-    def MaxEntDecoder():
-        return None
-    
+        # Initialize the MaxEnt model
+        self.maxent = None
+
     # Define a Function that specifies the Forward Pass of the Decoder
     def forward(self, x):
-        # Define the Forward Pass of the Decoder
-        return None
+        # Use the MaxEnt model to generate the output
+        if self.maxent is not None:
+            output = self.maxent.MaxEnt()
+            return output
+        else:
+            # Define the Forward Pass of the Decoder
+            return None
+
+    # Initialize the MaxEnt model with the given low-resolution and high-resolution images
+    def set_maxent(self, low_res_image, high_res_image):
+        self.maxent = MaxEnt(low_res_image, high_res_image)
