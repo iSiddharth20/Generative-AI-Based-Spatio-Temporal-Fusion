@@ -1,7 +1,10 @@
-# Spatio-Temporal-Fusion-in-Remote-Sensing
+# Generative-AI based Spatio-Temporal Fusion for Video Super-Resolution through Up-Scaling and Frame-Interpolation (Ongoing Research)
 ## A Novel Approach leveraging Auto-Encoders, LSTM Networks and Maximum Entropy Principle.
 
-### Kindly [Review Issues](https://github.com/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing/issues) Section. Dataset will also be made available soon.
+
+### Kindly [Review Issues](https://github.com/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing/issues) Section.
+
+### [Dataset]([https://github.com/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing/issues](https://www.kaggle.com/datasets/isiddharth/spatio-temporal-data-of-moon-rise-in-raw-and-tif)) is now Available!
 
 ### [Click Here](./Documentation/Concept_Presentation.pptx) for Powerpoint Presentaion of Concept.
 
