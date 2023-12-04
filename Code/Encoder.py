@@ -24,8 +24,18 @@ class Encoder(nn.Module):
 
         # Define the dropout parameter of the Encoder
         self.dropout = dropout
+
+        # Define ReLU Activation Function
+        self.relu = nn.ReLU()
     
     # Define a Function that specifies the Forward Pass of the Encoder
     def forward(self, x):
         # Define the Forward Pass of the Encoder
-        return None
+        self.layer1 = nn.conv3d(in_channels=3, out_channels=3, kernel_size=64, stride=1, padding=1)
+        self.layer2 = nn.conv3d(in_channels=3, out_channels=3, kernel_size=16, stride=1, padding=1)
+        self.layer3 = nn.conv3d(in_channels=3, out_channels=3, kernel_size=3, stride=1, padding=1)
+        x = self.relu(self.layer1(x))
+        x = self.relu(self.layer2(x))
+        x = self.relu(self.layer3(x))
+        return x
+
