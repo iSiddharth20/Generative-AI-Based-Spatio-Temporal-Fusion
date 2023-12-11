@@ -12,11 +12,11 @@ Developing a novel approach to video super-resolution by harnessing the potentia
 
 ## Research Objective
 
-The main goals of ptojects are:
+The main goals of the project are:
 - To learn temporal dependencies among spatially-sparse-temporally-dense greyscale image frames to predict and interpolate new frames, hence, increasing temporal resolution.
 - To learn spatial dependencies through spatially-dense-temporally-sparse sequences that include both greyscale and corresponding RGB image frames to generate colorized versions of greyscale frames, thus, enhancing spatial resolution.
 
-Here's a visual representation of our data transformation:
+Here's a visual representation of the data transformation:
 - **Current Format**: `[Grey-1] [Grey-2, RGB-2] [Grey-3] [Grey-4] ... [Grey-8, RGB-8] [Grey-9] [Grey-10]`
 - **Post-Processing**: `[RGB-1] [RGB-1.5] [RGB-2] [RGB-2.5] ... [RGB-8.5] [RGB-9] [RGB-9.5] [RGB-10]`
 
