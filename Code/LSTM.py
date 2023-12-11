@@ -1,8 +1,8 @@
 '''
 Module that specifies LSTM Network using PyTorch
 --------------------------------------------------------------------------------
-Create a simple LSTM network using PyTorch, assume that CUDA GPU is available. 
-Take any random size for input and hidden size. 
+This is a Template Code and Needs to be Modified based on the Problem Statement 
+Assume that CUDA GPU is available. 
 '''
 
 # Importing Necessary Libraries

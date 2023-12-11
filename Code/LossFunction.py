@@ -1,7 +1,7 @@
 '''
 Module that specifies Composite Loss Function and Maximum Entropy Calculation (MaxEnt)
 --------------------------------------------------------------------------------
-This Code Needs to be Modified based on the Problem Statement 
+This is a Template Code and Needs to be Modified based on the Problem Statement 
 '''
 
 
@@ -40,5 +40,19 @@ class CompositeLossFunction(nn.Module):
         maxent = self.maxent_loss(pred)
         # Combine the loss components
         composite_loss = (1 - self.alpha) * mse + self.alpha * maxent
+        return composite_loss
+    
+# Defining the Regular Loss Function (MSE only)
+class RegularLossFunction(nn.Module):
+    def __init__(self, alpha=0.5):
+        super(CompositeLossFunction, self).__init__()
+        self.mse_loss = nn.MSELoss(reduction='mean')
+        self.alpha = alpha
+
+    def forward(self, pred, target):
+        # Mean Squared Error component
+        mse = self.mse_loss(pred, target)
+        # Combine the loss components
+        composite_loss = (1 - self.alpha) * mse + self.alpha
         return composite_loss
     
