@@ -6,7 +6,6 @@ Thank you for considering contributing to [Generative-AI-Based-Spatio-Temporal-F
 
 ### Pull Requests
 - 🍴 Fork the repository.
-- 📝 Include descriptive comments in code.
 - 📌 Include descriptive commit messages.
 
 ### Code Styleguide
