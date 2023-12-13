@@ -1,81 +1,75 @@
 '''
-Module that Combines AutoEncoder, LSTM to Train the Model using 2 Kinds of loss Functions.
+Main Module
 --------------------------------------------------------------------------------
-This is a Template Code and Needs to be Modified based on the Problem Statement 
 '''
 
-# Importing Necessary Libraries and Individual Components
+from data import Dataset
+from lstm_model import LSTMModel
+from autoencoder_model import Autoencoder
+from losses import LossMLP, LossMEP
+from training import Trainer
+from evaluation import Evaluator
 
-import torch
-import torch.optim as optim
+def main():
+    # Prepare the dataset
+    dataset = Dataset(image_size=(400, 600), batch_size=64, augment=True)
+    (train_gray, val_gray, test_gray), (train_rgb, val_rgb, test_rgb) = dataset.split_data()
 
-from LossFunction import CompositeLossFunction, RegularLossFunction
-from AutoEncoder import AutoEncoder
-from LSTM import LSTMModule
-import pytorch_ssim
+    # Convert data to PyTorch tensor dataloaders
+    train_loader_gray = dataset.get_batches(train_gray)
+    val_loader_gray = dataset.get_batches(val_gray)
+    test_loader_gray = dataset.get_batches(test_gray)
 
+    train_loader_rgb = dataset.get_batches(train_rgb)
+    val_loader_rgb = dataset.get_batches(val_rgb)
+    test_loader_rgb = dataset.get_batches(test_rgb)
 
-# Initialize the model components
-autoencoder = AutoEncoder(input_size=000, hidden_size=000, output_size=000)
-lstm = LSTMModule(input_size=000, hidden_size=000, output_size=000, num_layers=000, dropout=000)
+    # Parameter setup (these values should be carefully chosen or tuned)
+    input_feature_size = 1  # For grayscale there is only one input feature per pixel
+    hidden_size = 128  # Number of features in the hidden state of the LSTM
+    sequence_length = 400 * 600  # The number of features in the input sequence
+    lstm_output_size = 400 * 600  # The output is a sequence of pixel values
+    autoencoder_channels = 3  # For RGB images, the channel depth is 3
 
-# Initialize the Composite Loss Function (Alpha may need tuning)
-loss_MEP = CompositeLossFunction(alpha=0.5) 
+    # Initialize Models
+    lstm_model = LSTMModel(input_feature_size, hidden_size, sequence_length, lstm_output_size)
+    autoencoder_model = Autoencoder(image_channels=autoencoder_channels)
 
-# Initialize the Regular Loss Function (Alpha may need tuning)
-loss_MLP = RegularLossFunction(alpha=0.5) 
+    # Initialize Loss Functions
+    loss_mlp = LossMLP(alpha=0.5)
+    loss_mep = LossMEP(alpha=0.5)
 
-# Initialize Adam Optimizer
-optimizer = optim.Adam(autoencoder.parameters(), lr=0.001)
+    '''
+    Train and Evaluate with MLP
+    '''
+    # Initialize Trainer
+    trainer_lstm = Trainer(lstm_model, loss_mlp)
+    trainer_autoencoder = Trainer(autoencoder_model, loss_mlp)
+    # Train Model
+    trainer_lstm.train(100, train_loader_gray, val_loader_gray)
+    trainer_autoencoder.train(100, train_loader_rgb, val_loader_rgb)
+    # Initialize Evaluator
+    evaluator_lstm = Evaluator(lstm_model, loss_mlp)
+    evaluator_autoencoder = Evaluator(autoencoder_model, loss_mlp)
+    # Evaluate Model
+    evaluator_lstm.evaluate(test_loader_gray)
+    evaluator_autoencoder.evaluate(test_loader_rgb)
 
-# Initialize the Training Loop
-def train_model(autoencoder, lstm, loss_function, optimizer, train_loader, device, model_name):
-    lstm.train()
-    autoencoder.train()
-    train_loss = 0
-    for batch_idx, (data, target) in enumerate(train_loader):
-        # Send data and target to device
-        data, target = data.to(device), target.to(device)
-        # Zero the gradients carried over from previous step
-        optimizer.zero_grad()
-        # Pass the data through the LSTM
-        output = lstm(data)
-        # Pass the output through the AutoEncoder
-        output = autoencoder(output)
-        # Calculate the loss
-        loss = loss_function(output, target)
-        # Backpropagate the loss
-        loss.backward()
-        # Update the weights
-        optimizer.step()
-        # Update the training loss
-        train_loss += loss.item()
-    # Return the training loss
-    return train_loss
+    '''
+    Train and Evaluate with MEP
+    '''
+    # Initialize Trainer
+    trainer_lstm = Trainer(lstm_model, loss_mep)
+    trainer_autoencoder = Trainer(autoencoder_model, loss_mep)
+    # Train Model
+    trainer_lstm.train(100, train_loader_gray, val_loader_gray)
+    trainer_autoencoder.train(100, train_loader_rgb, val_loader_rgb)
+    # Initialize Evaluator
+    evaluator_lstm = Evaluator(lstm_model, loss_mep)
+    evaluator_autoencoder = Evaluator(autoencoder_model, loss_mep)
+    # Evaluate Model
+    evaluator_lstm.evaluate(test_loader_gray)
+    evaluator_autoencoder.evaluate(test_loader_rgb)
 
-
-# Implement a PyTorch validation loop that computes the Mean Squared Error (MSE) and Structural Similarity Index Measure (SSIM)
-def validate_model(autoencoder, lstm, val_loader, device, loss_function):
-    lstm.eval()
-    autoencoder.eval()
-    val_loss = 0
-    mse = 0
-    ssim = 0
-    with torch.no_grad():
-        for batch_idx, (data, target) in enumerate(val_loader):
-            # Send data and target to device
-            data, target = data.to(device), target.to(device)
-            # Pass the data through the LSTM
-            output = lstm(data)
-            # Pass the output through the AutoEncoder
-            output = autoencoder(output)
-            # Calculate the loss
-            loss = loss_function(output, target)
-            # Update the validation loss
-            val_loss += loss.item()
-            # Calculate the MSE
-            mse += torch.mean((output - target) ** 2)
-            # Calculate the SSIM
-            ssim += pytorch_ssim.ssim(output, target)
-    # Return the validation loss, MSE and SSIM
-    return val_loss, mse, ssim
+if __name__ == '__main__':
+    main()
