@@ -1,7 +1,8 @@
 # GenAI-Powered Spatio-Temporal Fusion for Video Super-Resolution
 ![Status](https://img.shields.io/badge/status-ongoing-yellow.svg)
-![GitHub Issues](https://img.shields.io/github/issues/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing)
 ![License](https://img.shields.io/github/license/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing)
+
+Next Update to Repo : December 14, 2023. Thank You!
 
 Exploring the forefront of generative AI to enhance video quality through advanced spatio-temporal fusion techniques by Upscaling and Frame-Interpolation.
 
