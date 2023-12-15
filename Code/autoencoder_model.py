@@ -3,51 +3,49 @@ Module that specifies AutoEncoder Architecture using PyTorch
 --------------------------------------------------------------------------------
 '''
 
-import torch
+# Import Necessary Libraries
 import torch.nn as nn
 
-class Autoencoder(nn.Module):
-    def __init__(self, image_channels=1):
-        super(Autoencoder, self).__init__()
-        # Encoder layers
+# Define AutoEncoder Architecture
+class AutoEncoder(nn.Module):
+    def __init__(self):  
+        super(AutoEncoder, self).__init__()  
+
+        '''
+        # Define the Encoder
+        The Encoder consists of 4 Convolutional layers with ReLU activation function
+        Encoder takes 1-Chanel Grayscale image (1 channel) as input and outputs High-Dimentional-Representation
+        '''
         self.encoder = nn.Sequential(
-            nn.Conv2d(image_channels, 32, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(1, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),  # New layer
-            nn.BatchNorm2d(512),
+            nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
             nn.ReLU()
         )
-        
-        # Decoder layers
+
+        '''
+        # Define the Decoder
+        The Decoder consists of 4 Transpose Convolutional layers with ReLU activation function
+        Decoder takes High-Dimentional-Representation as input and outputs 3-Chanel RGB image
+        '''
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1),  # New layer
-            nn.BatchNorm2d(256),
+            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.ReLU(),
             nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.ConvTranspose2d(32, image_channels, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.Tanh()  # Assuming the input images are normalized between [-1, 1]
+            nn.ConvTranspose2d(64, 3, kernel_size=3, stride=2, padding=1, output_padding=1),
+            nn.Sigmoid()
         )
 
+    # The forward pass takes an input image, passes it through the encoder and decoder, and returns the output image
     def forward(self, x):
-        encoded = self.encoder(x)
-        decoded = self.decoder(encoded)
-        return x + decoded  # Add residual connection
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
 

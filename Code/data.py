@@ -3,84 +3,63 @@ Module that specifies Data Pre-Processing
 --------------------------------------------------------------------------------
 '''
 
+# Import Necessary Libraries
 import os
 import numpy as np
 from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-from sklearn.model_selection import train_test_split
 import torch
-from torchvision import transforms
 
+# Define a class for Importing dataset and Storing it as NumPy Array
 class Dataset:
-    def __init__(self, grayscale_dir='../Dataset/Greyscale', rgb_dir='../Dataset/RGB', image_size=(400, 600), batch_size=64, augment=False):
-        self.grayscale_dir = grayscale_dir
-        self.rgb_dir = rgb_dir
-        self.image_size = image_size
-        self.batch_size = batch_size
-        self.augment = augment
-        # Load images separately from their respective directories
-        self.grayscale_images = self.load_images(self.grayscale_dir, convert_to_grayscale=True)
-        self.rgb_images = self.load_images(self.rgb_dir, convert_to_grayscale=True)
-    
-    def load_images(self, directory, convert_to_grayscale):
+    def __init__(self, grayscale_dir, rgb_dir, image_size, batch_size):
+        self.grayscale_dir = grayscale_dir  # Directory for grayscale images
+        self.rgb_dir = rgb_dir  # Directory for RGB images
+        self.image_size = image_size  # Size to which images will be resized
+        self.batch_size = batch_size  # Batch size for training
+        '''
+        Load Greyscale and RGB images from respective directories
+        Store All Images of the Directory in a Normalized NumPy arrays
+        Convert the NumPy arrays to PyTorch Tensors
+        '''
+        self.grayscale_images = self.load_images_to_tensor(self.grayscale_dir)
+        self.rgb_images = self.load_images_to_tensor(self.rgb_dir)
+
+    # Function to load images, resize and export as NumPy array
+    def load_images_to_tensor(self, directory):
         images = []
+        # Loop through all files in the directory
         for filename in os.listdir(directory):
+            # If the file is an image file
             if filename.endswith('.tif') or filename.endswith('.tiff'):
                 img_path = os.path.join(directory, filename)
                 img = Image.open(img_path)
-                if convert_to_grayscale:
-                    img = img.convert('L')  # Convert to grayscale if necessary
+                # Resize the image
                 img = img.resize(self.image_size)
-                if self.augment:
-                    img = self.augment_image(img)
-                images.append(np.array(img))
+                # Append the normalized image to the list
+                img_array = np.array(img).astype('float32') / 255.0
+                # Add an extra dimension for grayscale images
+                if len(img_array.shape) == 2:
+                    img_array = np.expand_dims(img_array, axis=-1)
+                images.append(img_array)
+        # Return the PyTorch Tensor {with shape [m, C, H, W]} created from of NumPy Array of Images
+        images = np.array(images)
+        images = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)
         return images
     
-    def preprocess_image(self, img):
-        # Resize image
-        img = img.resize(self.image_size)
-        # Convert to grayscale if necessary
-        if img.mode != 'L':
-            img = img.convert('L')
-        # Apply augmentations if enabled
-        if self.augment:
-            img = self.augment_image(img)
-        return img
-
-    def augment_image(self, img):
-        # Define augmentations
-        augmentations = transforms.Compose([
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            transforms.RandomRotation(20),
-            # Add any other transformations you want here
-        ])
-        img = augmentations(img)
-        return img
-
-    def normalize_images(self, images):
-        # Convert list to numpy array, then normalize images to be in the range [0, 1]
-        return np.array(images).astype('float32') / 255.0
-
-    def split_data(self):
-        # Split the grayscale images into train/val/test
-        train_gray, test_gray = train_test_split(self.grayscale_images, test_size=0.2, random_state=42)
-        train_gray, val_gray = train_test_split(train_gray, test_size=0.25, random_state=42)  # 0.25 x 0.8 = 0.2
-
-        # Split the RGB images into train/val/test
-        train_rgb, test_rgb = train_test_split(self.rgb_images, test_size=0.2, random_state=42)
-        train_rgb, val_rgb = train_test_split(train_rgb, test_size=0.25, random_state=42)  # 0.25 x 0.8 = 0.2
-
-        # Normalize images
-        train_gray, val_gray, test_gray = map(self.normalize_images, [train_gray, val_gray, test_gray])
-        train_rgb, val_rgb, test_rgb = map(self.normalize_images, [train_rgb, val_rgb, test_rgb])
-
-        return (train_gray, val_gray, test_gray), (train_rgb, val_rgb, test_rgb)
-
-    def get_batches(self, data):
-        # Generate batches
-        data = torch.tensor(data, dtype=torch.float32)
-        dataset = torch.utils.data.TensorDataset(data)
+    # Function to get batches of input-target pairs from data (This Functionality is for AutoEncoder Component of the Program)
+    def get_autoencoder_batches(self):
+        # Create a Dataset from the Tensors
+        dataset = torch.utils.data.TensorDataset(self.grayscale_images, self.rgb_images)
+        # Create a dataloader for the Dataset
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        # Return the dataloader 
         return dataloader
+    
+    # Function to get image-sequence of imported data (This Functionality is for LSTM Component of the Program)
+    def get_lstm_batches(self):
+        # Add an extra dimension at the beginning of the Tensor so that it has shape [1, m, C, H, W]
+        grayscale_image_sequence = self.grayscale_images.unsqueeze(0)
+        return grayscale_image_sequence
+    
