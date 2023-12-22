@@ -2,7 +2,7 @@
 
 Thank you for considering contributing to [Generative-AI-Based-Spatio-Temporal-Fusion](https://github.com/iSiddharth20/Generative-AI-Based-Spatio-Temporal-Fusion)! Your efforts and contributions are crucial for the success of this project and greatly appreciated. Below, you'll find the process and guidelines for contributing.
 
-## This File will be Updated with the New Code Structure Details by December 17, 2023. Thank You!
+## This File will be Updated with the New Code Structure Details by December 26, 2023. Thank You!
 
 ## Guidelines:
 
