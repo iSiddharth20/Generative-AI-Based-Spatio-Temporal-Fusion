@@ -1,5 +1,7 @@
 '''
-Module that specifies Loss Functions
+Module for Loss Functions 
+    - Maximum Entropy Principle (MEP)
+    - Maximum Likelihood Principle (MLP)
 --------------------------------------------------------------------------------
 '''
 

@@ -3,73 +3,136 @@ Main Module
 --------------------------------------------------------------------------------
 '''
 
+# Importing Custom Modules
 from data import Dataset
-from lstm_model import LSTMModel
-from autoencoder_model import Autoencoder
+from lstm_model import FrameInterpolationLSTM
+from autoencoder_model import Grey2RGBAutoEncoder
 from losses import LossMLP, LossMEP
 from training import Trainer
-from evaluation import Evaluator
+
+# Import Necessary Libraries
+import os
+import torch
+import numpy as np
+from PIL import Image
+
+# Define Working Directories
+grayscale_dir = '../Dataset/Greyscale'
+rgb_dir = '../Dataset/RGB'
+
+# Define Universal Parameters
+image_height = 4000
+image_width = 6000
+batch_size = 4
+val_split = 0.2
+
+
+def generate_rgb_sequence(model_lstm, model_autoencoder, grey_sequence, n_interpolate_frames, 
+                          model_save_path_lstm, model_save_path_ae, generated_sequence_dir):
+
+    if os.path.exists(model_save_path_lstm):
+        model_lstm.load_state_dict(torch.load(model_save_path_lstm))
+        model_lstm.eval()
+
+    if os.path.exists(model_save_path_ae):
+        model_autoencoder.load_state_dict(torch.load(model_save_path_ae))
+        model_autoencoder.eval()
+
+
+    full_sequence_gray = model_lstm(grey_sequence, n_interpolate_frames)
+
+
+    full_sequence_rgb = []
+    with torch.no_grad():
+        for i in range(full_sequence_gray.size(1)): 
+            gray_frame = full_sequence_gray[:, i, :, :]
+            rgb_frame = model_autoencoder(gray_frame.unsqueeze(dim=0))
+            full_sequence_rgb.append(rgb_frame)
+
+
+    os.makedirs(generated_sequence_dir, exist_ok=True)
+    for idx, rgb_tensor in enumerate(full_sequence_rgb):
+
+        image_data = rgb_tensor.squeeze().cpu().numpy()
+        image_data = np.transpose(image_data, (1, 2, 0)) 
+        image_data = (image_data * 255).astype(np.uint8)
+        image = Image.fromarray(image_data)
+
+        image_path = os.path.join(generated_sequence_dir, f'generated_frame_{idx:04d}.tif')
+        image.save(image_path)
+
+    print('The generated sequence of RGB images has been saved.')
+
 
 def main():
-    # Prepare the dataset
-    dataset = Dataset(image_size=(400, 600), batch_size=64, augment=True)
-    (train_gray, val_gray, test_gray), (train_rgb, val_rgb, test_rgb) = dataset.split_data()
+    # Initialize Dataset Object (PyTorch Tensors)
+    dataset = Dataset(grayscale_dir, rgb_dir, (image_height, image_width), batch_size)
 
-    # Convert data to PyTorch tensor dataloaders
-    train_loader_gray = dataset.get_batches(train_gray)
-    val_loader_gray = dataset.get_batches(val_gray)
-    test_loader_gray = dataset.get_batches(test_gray)
+    # Import Loss Functions
+    loss_mlp = LossMLP(alpha=0.4) # Maximum Likelihood Loss
+    loss_mep = LossMEP(alpha=0.4) # Maximum Entropy Loss
 
-    train_loader_rgb = dataset.get_batches(train_rgb)
-    val_loader_rgb = dataset.get_batches(val_rgb)
-    test_loader_rgb = dataset.get_batches(test_rgb)
+    # Initialize AutoEncoder Model and Import Dataloader (Training, Validation)
+    model_autoencoder = Grey2RGBAutoEncoder()
+    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split) # ??
 
-    # Parameter setup (these values should be carefully chosen or tuned)
-    input_feature_size = 1  # For grayscale there is only one input feature per pixel
-    hidden_size = 128  # Number of features in the hidden state of the LSTM
-    sequence_length = 400 * 600  # The number of features in the input sequence
-    lstm_output_size = 400 * 600  # The output is a sequence of pixel values
-    autoencoder_channels = 3  # For RGB images, the channel depth is 3
-
-    # Initialize Models
-    lstm_model = LSTMModel(input_feature_size, hidden_size, sequence_length, lstm_output_size)
-    autoencoder_model = Autoencoder(image_channels=autoencoder_channels)
-
-    # Initialize Loss Functions
-    loss_mlp = LossMLP(alpha=0.5)
-    loss_mep = LossMEP(alpha=0.5)
+    # Initialize LSTM Model and Import Image Sequences (Training, Validation)
+    grey_sequence = dataset.get_lstm_batches()
+    C, H, W = 1, image_height, image_width 
+    hidden_size = 64
+    num_layers = 3
+    n_interpolate_frames = 1 # Number of intermediate frames to interpolate
+    kernel_size = (3, 3)
+    model_lstm = FrameInterpolationLSTM(C, hidden_size, kernel_size, num_layers, C)
 
     '''
-    Train and Evaluate with MLP
-    '''
-    # Initialize Trainer
-    trainer_lstm = Trainer(lstm_model, loss_mlp)
-    trainer_autoencoder = Trainer(autoencoder_model, loss_mlp)
-    # Train Model
-    trainer_lstm.train(100, train_loader_gray, val_loader_gray)
-    trainer_autoencoder.train(100, train_loader_rgb, val_loader_rgb)
-    # Initialize Evaluator
-    evaluator_lstm = Evaluator(lstm_model, loss_mlp)
-    evaluator_autoencoder = Evaluator(autoencoder_model, loss_mlp)
-    # Evaluate Model
-    evaluator_lstm.evaluate(test_loader_gray)
-    evaluator_autoencoder.evaluate(test_loader_rgb)
+    Initialize Trainer Objects
+    ''' 
+    # Maximize Likelihood Principle
+    model_save_path_ae = '../Models/model_autoencoder_mlp.pth'
+    trainer_mlp_autoencoder = Trainer(model_autoencoder, loss_mlp, model_save_path_ae)
+    model_save_path_lstm = '../Models/model_lstm_mlp.pth'
+    trainer_mlp_lstm = Trainer(model_lstm, loss_mlp, model_save_path_lstm)
+    # Maximize Entropy Principle
+    model_save_path_ae = '../Models/model_autoencoder_mep.pth'
+    trainer_mep_autoencoder = Trainer(model_autoencoder, loss_mep, model_save_path_ae)
+    model_save_path_lstm = '../Models/model_lstm_mep.pth'
+    trainer_mep_lstm = Trainer(model_lstm, loss_mep, model_save_path_lstm)
 
     '''
-    Train and Evaluate with MEP
+    Train Models, Obtain Trained Model
+    ''' 
+    # Maximize Likelihood Principle
+    epochs = 5
+    model_autoencoder_mlp = trainer_mlp_autoencoder.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val) 
+    model_lstm_mlp = trainer_mlp_lstm.train_lstm(epochs, n_interpolate_frames, grey_sequence)
+
+    # Maximize Entropy Principle
+    epochs = 5
+    model_autoencoder_mep = trainer_mep_autoencoder.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+    model_lstm_mep = trainer_mep_lstm.train_lstm(epochs, n_interpolate_frames, grey_sequence)
+
     '''
-    # Initialize Trainer
-    trainer_lstm = Trainer(lstm_model, loss_mep)
-    trainer_autoencoder = Trainer(autoencoder_model, loss_mep)
-    # Train Model
-    trainer_lstm.train(100, train_loader_gray, val_loader_gray)
-    trainer_autoencoder.train(100, train_loader_rgb, val_loader_rgb)
-    # Initialize Evaluator
-    evaluator_lstm = Evaluator(lstm_model, loss_mep)
-    evaluator_autoencoder = Evaluator(autoencoder_model, loss_mep)
-    # Evaluate Model
-    evaluator_lstm.evaluate(test_loader_gray)
-    evaluator_autoencoder.evaluate(test_loader_rgb)
+    Pass Output of LSTM Model to AutoEncoder Model to Obtain Final Output
+    '''
+    # Maximize Likelihood Principle
+    model_save_path_ae = '../Models/model_autoencoder_mlp.pth'
+    model_save_path_lstm = '../Models/model_lstm_mlp.pth'
+    generated_sequence_dir = '../Dataset/GeneratedSequence/MLP'
+    generate_rgb_sequence(model_lstm_mlp, model_autoencoder_mlp, grey_sequence, n_interpolate_frames, 
+                          model_save_path_lstm, model_save_path_ae, generated_sequence_dir)
+
+    # Maximize Entropy Principle
+    model_save_path_ae = '../Models/model_autoencoder_mep.pth'
+    model_save_path_lstm = '../Models/model_lstm_mep.pth'
+    generated_sequence_dir = '../Dataset/GeneratedSequence/MEP'
+    generate_rgb_sequence(model_lstm_mep, model_autoencoder_mep, grey_sequence, n_interpolate_frames, 
+                          model_save_path_lstm, model_save_path_ae, generated_sequence_dir)
+
 
 if __name__ == '__main__':
     main()
+
+
+
+

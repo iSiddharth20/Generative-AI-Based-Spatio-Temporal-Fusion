@@ -1,5 +1,6 @@
 '''
-Module that specifies AutoEncoder Architecture using PyTorch
+Module for AutoEncoder
+Generates 3-Chanel RGB Image from 1-Chanel Grayscale Image
 --------------------------------------------------------------------------------
 '''
 
@@ -7,9 +8,9 @@ Module that specifies AutoEncoder Architecture using PyTorch
 import torch.nn as nn
 
 # Define AutoEncoder Architecture
-class AutoEncoder(nn.Module):
+class Grey2RGBAutoEncoder(nn.Module):
     def __init__(self):  
-        super(AutoEncoder, self).__init__()  
+        super(Grey2RGBAutoEncoder, self).__init__()  
 
         '''
         # Define the Encoder
