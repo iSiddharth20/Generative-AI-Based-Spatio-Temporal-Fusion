@@ -70,21 +70,33 @@ def main():
     ''' 
     # Maximize Likelihood Principle
     epochs = 5
-    print('AutoEncoder MLP Training Initialized.')
-    model_autoencoder_mlp = trainer_mlp_autoencoder.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
-    print('AutoEncoder MLP Training Complete.')
-    print('LSTM MLP Training Initialized.') 
-    model_lstm_mlp = trainer_mlp_lstm.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
-    print('LSTM MLP Training Complete.') 
+    try:
+        print('AutoEncoder MLP Training Initialized.')
+        model_autoencoder_mlp = trainer_mlp_autoencoder.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        print('AutoEncoder MLP Training Complete.')
+    except Exception as e:
+        print(f"AutoEncoder MLP Training Error : \n{e}")
+    try:
+        print('LSTM MLP Training Initialized.') 
+        model_lstm_mlp = trainer_mlp_lstm.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
+        print('LSTM MLP Training Complete.') 
+    except Exception as e:
+        print(f"LSTM MLP Training Error : \n{e}")
 
     # Maximize Entropy Principle
     epochs = 5
-    print('AutoEncoder MEP Training Initialized.') 
-    model_autoencoder_mep = trainer_mep_autoencoder.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
-    print('AutoEncoder MEP Training Complete.') 
-    print('LSTM MEP Training Initialized.') 
-    model_lstm_mep = trainer_mep_lstm.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
-    print('LSTM MEP Training Complete.') 
+    try:
+        print('AutoEncoder MEP Training Initialized.') 
+        model_autoencoder_mep = trainer_mep_autoencoder.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        print('AutoEncoder MEP Training Complete.') 
+    except Exception as e:
+        print(f"AutoEncoder MEP Training Error : \n{e}")
+    try:
+        print('LSTM MEP Training Initialized.') 
+        model_lstm_mep = trainer_mep_lstm.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
+        print('LSTM MEP Training Complete.')
+    except Exception as e:
+        print(f"LSTM MEP Training Error : \n{e}")
 
 if __name__ == '__main__':
     main()
