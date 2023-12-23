@@ -17,7 +17,12 @@ class ConvLSTMCell(nn.Module):
         self.input_channels = input_channels
         self.hidden_channels = hidden_channels
         self.kernel_size = kernel_size
-        self.padding = kernel_size // 2  # Padding to maintain spatial dimensions
+        if isinstance(kernel_size, int):
+            self.padding = kernel_size // 2
+        elif isinstance(kernel_size, tuple):
+            self.padding = (kernel_size[0] // 2, kernel_size[1] // 2)
+        else:
+            raise ValueError("kernel_size must be an int or a tuple of two ints")
         self.bias = bias
         # Define a convolutional layer that takes both the input and the hidden state as input
         self.conv = nn.Conv2d(in_channels=self.input_channels + self.hidden_channels,

@@ -11,6 +11,7 @@ from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 class Dataset:
     def __init__(self, grayscale_dir, rgb_dir, image_size, batch_size):
@@ -51,21 +52,29 @@ class Dataset:
     # Function to get batches of input-target pairs from data (This Functionality is for AutoEncoder Component of the Program)
     def get_autoencoder_batches(self,val_split):
         # Create a Dataset from the Tensors
-        dataset = torch.utils.data.TensorDataset(self.grayscale_images, self.rgb_images)
+        dataset = TensorDataset(self.grayscale_images, self.rgb_images)
         # Calculate the number of samples to include in the validation set
         val_size = int(val_split * len(dataset))
         train_size = len(dataset) - val_size
         # Split the dataset into training and validation sets
         train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
         # Create dataloaders for the training and validation sets
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
         # Return the training and validation dataloaders
         return train_loader, val_loader
-    
-    # Function to get image-sequence of imported data (This Functionality is for LSTM Component of the Program)
+
+    # Function to get batches of original_sequence-interpolated_sequence from data (This Functionality is for LSTM Component of the Program)
     def get_lstm_batches(self):
-        # Add an extra dimension at the beginning of the Tensor so that it has shape [1, m, C, H, W]
-        grayscale_image_sequence = self.grayscale_images.unsqueeze(0)
-        # Return the image sequence
-        return grayscale_image_sequence
+        # Add an extra dimension to the grayscale images tensor
+        greyscale_image_sequence = self.grayscale_images.unsqueeze(0)
+        # Split the sequence into training and validation sets
+        greyscale_image_sequence_train = greyscale_image_sequence[:, 1::2]  # All odd-indexed images for Training
+        greyscale_image_sequence_val = greyscale_image_sequence # All images for Validation of Interpolated Frames
+        # Create TensorDatasets
+        train_data = TensorDataset(greyscale_image_sequence_train)
+        val_data = TensorDataset(greyscale_image_sequence_val)
+        # Create DataLoaders
+        train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
+        val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
+        return train_loader, val_loader

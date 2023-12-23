@@ -1,11 +1,11 @@
 '''
 Module for Training Models
-Seprate Functions for Training AutoEncoder and LSTM Models
+Separate Functions for Training AutoEncoder and LSTM Models
 Saves the Model with the Lowest Validation Loss
 --------------------------------------------------------------------------------
 Forward Pass: Compute Output from Model from the given Input
 Backward Pass: Compute the Gradient of the Loss with respect to Model Parameters
-Initialize Best Validation Loss to Inifnity as we will save model with lowest validation loss
+Initialize Best Validation Loss to Infinity as we will save model with lowest validation loss
 '''
 
 # Import Necessary Libraries
@@ -28,12 +28,11 @@ class Trainer():
         torch.save(self.model.state_dict(), self.model_save_path)
 
     def train_autoencoder(self, epochs, train_loader, val_loader):
-        self.model.train() # Set the Model to Training Mode
         best_val_loss = float('inf')  
         for epoch in range(epochs):
+            self.model.train()  # Set the Model to Training Mode
             # Training Loop
-            for batch in train_loader:
-                input, target = batch # Input - Grayscale Image, Target - RGB Image
+            for input, target in train_loader:  # Input - Grayscale Image, Target - RGB Image
                 output = self.model(input)  # Forward Pass
                 loss = self.loss_function(output, target)  # Compute Training Loss
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
@@ -42,14 +41,10 @@ class Trainer():
             # Validation Loss Calculation
             self.model.eval()  # Set the Model to Evaluation Mode
             with torch.no_grad():  # Disable gradient computation
-                val_loss = 0  # Initialize the validation loss to 0
-                # Loop over each batch from the validation set
-                for batch in val_loader:
-                    input, target = batch  # Unpack Batch
-                    output = self.model(input)  # Forward Pass
-                    loss = self.loss_function(output, target)  # Compute Loss
-                    val_loss += loss.item()  # Compute Total Validation Loss
+                val_loss = sum(self.loss_function(self.model(input), target).item() for input, target in val_loader)  # Compute Total Validation Loss
                 val_loss /= len(val_loader)  # Compute Average Validation Loss
+            # Print the epoch number and the validation loss
+            print(f'Epoch : {epoch}, Validation Loss : {val_loss}')
             # If the current validation loss is lower than the best validation loss, save the model
             if val_loss < best_val_loss:
                 best_val_loss = val_loss  # Update the best validation loss
@@ -57,7 +52,28 @@ class Trainer():
         # Return the Trained Model
         return self.model
 
-    def train_lstm(self, epochs, n, image_sequence):
-        # Write the code to train LSTM Model which generates intermediate frames between each pair of frames in the image sequence
-        
-
+    def train_lstm(self, epochs, n_interpolate_frames, train_data, val_data):
+        min_val_loss = float('inf')  # Initialize the minimum validation loss to infinity
+        # Loop over the number of epochs
+        for epoch in range(epochs):
+            self.model.train() # Set the model to training mode
+            # Training Loop
+            for sequence in train_data:
+                self.optimizer.zero_grad() # Reset the gradients accumulated from the previous iteration
+                output = self.model(sequence, n_interpolate_frames) # Forward Pass
+                loss = self.loss_fn(output, sequence) # Compute Training Loss
+                loss.backward() # Backward Pass
+                self.optimizer.step() # Update Model Parameters
+            # Validation Loss Calculation
+            self.model.eval() # Set the Model to Evaluation Mode
+            with torch.no_grad():
+                val_loss = sum(self.loss_fn(self.model(sequence, n_interpolate_frames), sequence).item() for sequence in val_data)  # Compute Total Validation Loss
+                val_loss /= len(val_data)  # Compute Average Validation Loss
+            # Print the epoch number and the validation loss
+            print(f'Epoch : {epoch}, Validation Loss : {val_loss}')
+            # If the current validation loss is lower than the best validation loss, save the model
+            if val_loss < min_val_loss:
+                min_val_loss = val_loss # Update the best validation loss
+                self.save_model() # Save the model
+        # Return the Trained Model
+        return self.model
