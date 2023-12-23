@@ -3,3 +3,4 @@ pytorch_ssim
 Pillow
 matploltlib
 scikit-image
+pytorch-msssim
