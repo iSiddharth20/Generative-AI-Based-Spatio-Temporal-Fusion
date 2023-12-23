@@ -3,73 +3,130 @@ Main Module
 --------------------------------------------------------------------------------
 '''
 
+# Importing Custom Modules
 from data import Dataset
-from lstm_model import LSTMModel
-from autoencoder_model import Autoencoder
-from losses import LossMLP, LossMEP
+from lstm_model import FrameInterpolationLSTM
+from autoencoder_model import Grey2RGBAutoEncoder
+from losses import LossMSE, LossMEP, SSIMLoss
 from training import Trainer
-from evaluation import Evaluator
+
+# Import Necessary Libraries
+import os
+
+# Define Working Directories
+grayscale_dir = '../Dataset/Greyscale'
+rgb_dir = '../Dataset/RGB'
+
+# Define Universal Parameters
+image_height = 400
+image_width = 600
+batch_size = 4
+val_split = 0.2
+
 
 def main():
-    # Prepare the dataset
-    dataset = Dataset(image_size=(400, 600), batch_size=64, augment=True)
-    (train_gray, val_gray, test_gray), (train_rgb, val_rgb, test_rgb) = dataset.split_data()
+    # Initialize Dataset Object (PyTorch Tensors)
+    print('Loading Dataset Initiated.')
+    try:
+        dataset = Dataset(grayscale_dir, rgb_dir, (image_height, image_width), batch_size)
+        print('Loading Dataset Completed.')
+    except Exception as e:
+        print(f"Loading Dataset In-Complete : \n{e}")
 
-    # Convert data to PyTorch tensor dataloaders
-    train_loader_gray = dataset.get_batches(train_gray)
-    val_loader_gray = dataset.get_batches(val_gray)
-    test_loader_gray = dataset.get_batches(test_gray)
+    # Import Loss Functions
+    print('Importing Loss Functions Initiated.')
+    loss_mse = LossMSE() # Mean Squared Error Loss
+    loss_mep = LossMEP(alpha=0.4) # Maximum Entropy Loss
+    loss_ssim = SSIMLoss(data_range=1, size_average=True) # Structural Similarity Index Measure Loss
+    print('Importing Loss Functions Complete.')
 
-    train_loader_rgb = dataset.get_batches(train_rgb)
-    val_loader_rgb = dataset.get_batches(val_rgb)
-    test_loader_rgb = dataset.get_batches(test_rgb)
+    # Initialize AutoEncoder Model and Import Dataloader (Training, Validation)
+    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split)
+    print('AutoEncoder Model Data Initialized.')
+    model_autoencoder = Grey2RGBAutoEncoder()
+    print('AutoEncoder Model Initialized.')
 
-    # Parameter setup (these values should be carefully chosen or tuned)
-    input_feature_size = 1  # For grayscale there is only one input feature per pixel
-    hidden_size = 128  # Number of features in the hidden state of the LSTM
-    sequence_length = 400 * 600  # The number of features in the input sequence
-    lstm_output_size = 400 * 600  # The output is a sequence of pixel values
-    autoencoder_channels = 3  # For RGB images, the channel depth is 3
-
-    # Initialize Models
-    lstm_model = LSTMModel(input_feature_size, hidden_size, sequence_length, lstm_output_size)
-    autoencoder_model = Autoencoder(image_channels=autoencoder_channels)
-
-    # Initialize Loss Functions
-    loss_mlp = LossMLP(alpha=0.5)
-    loss_mep = LossMEP(alpha=0.5)
-
-    '''
-    Train and Evaluate with MLP
-    '''
-    # Initialize Trainer
-    trainer_lstm = Trainer(lstm_model, loss_mlp)
-    trainer_autoencoder = Trainer(autoencoder_model, loss_mlp)
-    # Train Model
-    trainer_lstm.train(100, train_loader_gray, val_loader_gray)
-    trainer_autoencoder.train(100, train_loader_rgb, val_loader_rgb)
-    # Initialize Evaluator
-    evaluator_lstm = Evaluator(lstm_model, loss_mlp)
-    evaluator_autoencoder = Evaluator(autoencoder_model, loss_mlp)
-    # Evaluate Model
-    evaluator_lstm.evaluate(test_loader_gray)
-    evaluator_autoencoder.evaluate(test_loader_rgb)
+    # Initialize LSTM Model and Import Image Sequences (Training, Validation)
+    grey_sequence_train, grey_sequence_val = dataset.get_lstm_batches()
+    print('LSTM Model Data Initialized.')
+    C = 1 
+    hidden_size = 64
+    num_layers = 3
+    n_interpolate_frames = 1 # Number of intermediate frames to interpolate
+    kernel_size = (3, 3)
+    model_lstm = FrameInterpolationLSTM(C, hidden_size, kernel_size, num_layers)
+    print('LSTM Model Initialized.')
 
     '''
-    Train and Evaluate with MEP
+    Initialize Trainer Objects
+    ''' 
+    # Method 1 : Baseline : Mean Squared Error Loss for AutoEncoder and LSTM
+    os.makedirs('../Models/Method1', exist_ok=True) # Creating Directory for Model Saving
+    model_save_path_ae = '../Models/Method1/model_autoencoder_m1.pth'
+    trainer_autoencoder_baseline = Trainer(model_autoencoder, loss_mse, model_save_path_ae)
+    print('Baseline AutoEncoder Trainer Initialized.')
+    model_save_path_lstm = '../Models/model_lstm_m1.pth'
+    trainer_lstm_baseline = Trainer(model_lstm, loss_mse, model_save_path_lstm)
+    print('Baseline LSTM Trainer Initialized.')
+
+    # Method 2 : Composite Loss for AutoEncoder and Mean Squared Error Loss for LSTM
+    os.makedirs('../Models/Method2', exist_ok=True) # Creating Directory for Model Saving
+    model_save_path_ae = '../Models/Method2/model_autoencoder_m2.pth'
+    trainer_autoencoder_m2 = Trainer(model_autoencoder, loss_mep, model_save_path_ae)
+    print('Method-2 AutoEncoder Trainer Initialized.')
+    print('Method-2 LSTM == Method-1 LSTM')
+
+    # Method 3 : Mean Squared Error Loss for AutoEncoder and SSIM Loss for LSTM
+    os.makedirs('../Models/Method3', exist_ok=True) # Creating Directory for Model Saving
+    print('Method-3 AutoEncoder == Method-1 AutoEncoder')
+    model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
+    trainer_lstm_m3 = Trainer(model_lstm, loss_ssim, model_save_path_lstm)
+    print('Method-3 LSTM Trainer Initialized.')
+
+    # Method 4 : Proposed Method : Composite Loss for AutoEncoder and SSIM Loss for LSTM
+    print('Method-4 AutoEncoder == Method-2 AutoEncoder')
+    print('Method-4 LSTM == Method-3 LSTM')
+
+
     '''
-    # Initialize Trainer
-    trainer_lstm = Trainer(lstm_model, loss_mep)
-    trainer_autoencoder = Trainer(autoencoder_model, loss_mep)
-    # Train Model
-    trainer_lstm.train(100, train_loader_gray, val_loader_gray)
-    trainer_autoencoder.train(100, train_loader_rgb, val_loader_rgb)
-    # Initialize Evaluator
-    evaluator_lstm = Evaluator(lstm_model, loss_mep)
-    evaluator_autoencoder = Evaluator(autoencoder_model, loss_mep)
-    # Evaluate Model
-    evaluator_lstm.evaluate(test_loader_gray)
-    evaluator_autoencoder.evaluate(test_loader_rgb)
+    Train Models, Obtain Trained Model
+    ''' 
+    # Method-1
+    try:
+        epochs = 5
+        print('M1 AutoEncoder Training Start.')
+        model_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        print('M1 AutoEncoder Training Start Complete.')
+    except Exception as e:
+        print(f"M1 AutoEncoder Training Error : \n{e}")
+    try:
+        epochs = 5
+        print('M1 LSTM Training Start.')
+        model_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
+        print('M1 LSTM Training Complete.') 
+    except Exception as e:
+        print(f"M1 LSTM Training Error : \n{e}")
+
+    # Method-2
+    try:
+        epochs = 5
+        print('M2 AutoEncoder Training Start.')
+        model_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        print('M2 AutoEncoder Training Start Complete.')
+    except Exception as e:
+        print(f"M2 AutoEncoder Training Error : \n{e}")
+    # Method-2 LSTM == Method-1 LSTM, no need to train again
+
+    # Method-3
+    try:
+        epochs = 5
+        print('M3 LSTM Training Start.')
+        model_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
+        print('M3 LSTM Training Complete.') 
+    except Exception as e:
+        print(f"M3 LSTM Training Error : \n{e}")
+    # Method-3 AutoEncoder == Method-1 AutoEncoder, no need to train again
+
 
 if __name__ == '__main__':
     main()

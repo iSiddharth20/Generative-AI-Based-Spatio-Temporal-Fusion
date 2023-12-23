@@ -1,45 +1,57 @@
 '''
-Module that specifies Loss Functions
---------------------------------------------------------------------------------
+Module for Loss Functions :
+    - Maximum Entropy Principle (MEP)
+    - Maximum Likelihood Principle (MLP)
+    - Structural Similarity Index Measure (SSIM)
 '''
 
 # Import Necessary Libraries
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from pytorch_msssim import SSIM
 
-# Define a class for the Maximum Entropy Principle (MEP) Loss
+'''
+Class for Composite Loss with MaxEnt Regularization Term
+    - Maximum Entropy Principle
+'''
 class LossMEP(nn.Module):
     def __init__(self, alpha=0.5):
         super(LossMEP, self).__init__()
-        # Regularization Parameter Weight 
-        self.alpha = alpha  
-        # Base Loss Function (MSE)
-        self.mse = nn.MSELoss() 
+        self.alpha = alpha  # Weighting factor for the loss
+        self.mse = nn.MSELoss()  # Mean Squared Error loss
 
     def forward(self, output, target):
-        # Compute the MSE loss
-        mse_loss = self.mse(output, target)  
-        # Compute Entropy of the Target Distribution
-        entropy = -torch.sum(target * torch.log(output + 1e-8), dim=-1).mean()
-        # Compute Composite Loss Function with MaxEnt Regularization Term
-        regularized_loss = self.alpha * mse_loss + (1 - self.alpha) * entropy
-        # Return Composite Loss 
-        return regularized_loss  
+        mse_loss = self.mse(output, target)  # Compute MSE Loss
+        entropy = -torch.sum(target * torch.log(output + 1e-8), dim=-1).mean() # Compute Entropy
+        composite_loss = self.alpha * mse_loss + (1 - self.alpha) * entropy # Compute Composite Loss
+        return composite_loss
 
-# Define a class for the Maximum Likelihood Principle (MLP) Loss
-class LossMLP(nn.Module):
-    def __init__(self, alpha=0.5):
-        super(LossMLP, self).__init__()
-        # Regularization Parameter Weight
-        self.alpha = alpha
-        # Mean Squared Error Loss
-        self.mse = nn.MSELoss()  
+'''
+Class for Mean Squared Error (MSE) Loss
+    - Maximum Likelihood Principle
+'''
+class LossMSE(nn.Module):
+    def __init__(self):
+        super(LossMSE, self).__init__()
+        self.mse = nn.MSELoss()  # Mean Squared Error loss
 
     def forward(self, output, target):
-        # Compute the MSE loss
-        likelihood_loss = self.mse(output, target)  
-        # Compute Loss Function with Maximum Likelihood Principle
-        regularized_loss = self.alpha * likelihood_loss
-        # Return Loss
-        return regularized_loss
+        likelihood_loss = self.mse(output, target)  # Compute MSE loss
+        return likelihood_loss
+
+'''
+Class for Structural Similarity Index Measure (SSIM) Loss
+    - Maximum Likelihood Principle
+    - In PyTorch, loss is minimized, by doing 1 - SSIM, minimizing the loss function will lead to maximization of SSIM
+'''
+class SSIMLoss(nn.Module):
+    def __init__(self, data_range=1, size_average=True):
+        super(SSIMLoss, self).__init__()
+        self.data_range = data_range  # The range of the input image (usually 1.0 or 255)
+        self.size_average = size_average  # If True, the SSIM of all windows are averaged
+        # Initialize SSIM module
+        self.ssim_module = SSIM(data_range=self.data_range, size_average=self.size_average)
+
+    def forward(self, img1, img2):
+        ssim_value = self.ssim_module(img1, img2)  # Compute SSIM
+        return 1 - ssim_value  # Return loss
