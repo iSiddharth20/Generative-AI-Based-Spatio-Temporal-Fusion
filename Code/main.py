@@ -96,7 +96,7 @@ def main():
         epochs = 5
         print('M1 AutoEncoder Training Start.')
         model_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
-        print('M1 AutoEncoder Training Start Complete.')
+        print('M1 AutoEncoder Training Complete.')
     except Exception as e:
         print(f"M1 AutoEncoder Training Error : \n{e}")
     try:
@@ -112,7 +112,7 @@ def main():
         epochs = 5
         print('M2 AutoEncoder Training Start.')
         model_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
-        print('M2 AutoEncoder Training Start Complete.')
+        print('M2 AutoEncoder Training Complete.')
     except Exception as e:
         print(f"M2 AutoEncoder Training Error : \n{e}")
     # Method-2 LSTM == Method-1 LSTM, no need to train again
