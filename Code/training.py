@@ -35,6 +35,7 @@ class Trainer():
             self.model.train()  # Set the Model to Training Mode
             # Training Loop
             for input, target in train_loader:  # Input - Grayscale Image, Target - RGB Image
+                input, target = input.to(self.device), target.to(self.device)
                 output = self.model(input)  # Forward Pass
                 loss = self.loss_function(output, target)  # Compute Training Loss
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
@@ -43,7 +44,7 @@ class Trainer():
             # Validation Loss Calculation
             self.model.eval()  # Set the Model to Evaluation Mode
             with torch.no_grad():  # Disable gradient computation
-                val_loss = sum(self.loss_function(self.model(input), target).item() for input, target in val_loader)  # Compute Total Validation Loss
+                val_loss = sum(self.loss_function(self.model(input.to(self.device)), target.to(self.device)).item() for input, target in val_loader)  # Compute Total Validation Loss
                 val_loss /= len(val_loader)  # Compute Average Validation Loss
             # Print the epoch number and the validation loss
             print(f'Epoch : {epoch}, Validation Loss : {val_loss}')
@@ -60,16 +61,17 @@ class Trainer():
         for epoch in range(epochs):
             self.model.train() # Set the model to training mode
             # Training Loop
-            for sequence in train_data:
+            for sequence, target in train_data:
                 self.optimizer.zero_grad() # Reset the gradients accumulated from the previous iteration
-                output = self.model(sequence, n_interpolate_frames) # Forward Pass
-                loss = self.loss_fn(output, sequence) # Compute Training Loss
+                sequence, target = sequence.to(self.device), target.to(self.device)  # Moved both to the device
+                output = self.model(sequence, n_interpolate_frames)
+                loss = self.loss_function(output, target) # Compute Training Loss
                 loss.backward() # Backward Pass
                 self.optimizer.step() # Update Model Parameters
             # Validation Loss Calculation
             self.model.eval() # Set the Model to Evaluation Mode
             with torch.no_grad():
-                val_loss = sum(self.loss_fn(self.model(sequence, n_interpolate_frames), sequence).item() for sequence in val_data)  # Compute Total Validation Loss
+                val_loss = sum(self.loss_function(self.model(sequence, n_interpolate_frames), sequence).item() for sequence in val_data)  # Compute Total Validation Loss
                 val_loss /= len(val_data)  # Compute Average Validation Loss
             # Print the epoch number and the validation loss
             print(f'Epoch : {epoch}, Validation Loss : {val_loss}')
