@@ -65,7 +65,7 @@ def main():
     model_save_path_ae = '../Models/Method1/model_autoencoder_m1.pth'
     trainer_autoencoder_baseline = Trainer(model_autoencoder, loss_mse, model_save_path_ae)
     print('Baseline AutoEncoder Trainer Initialized.')
-    model_save_path_lstm = '../Models/model_lstm_m1.pth'
+    model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
     trainer_lstm_baseline = Trainer(model_lstm, loss_mse, model_save_path_lstm)
     print('Baseline LSTM Trainer Initialized.')
 
