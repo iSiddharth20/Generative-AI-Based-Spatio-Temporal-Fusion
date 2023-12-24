@@ -65,15 +65,17 @@ class Dataset:
         return train_loader, val_loader
 
     # Function to get batches of original_sequence-interpolated_sequence from data (This Functionality is for LSTM Component of the Program)
-    def get_lstm_batches(self):
+    def get_lstm_batches(self,val_split):
         # Add an extra dimension to the grayscale images tensor
         greyscale_image_sequence = self.grayscale_images.unsqueeze(0)
         # Split the sequence into training and validation sets
-        greyscale_image_sequence_train = greyscale_image_sequence[:, 1::2]  # All odd-indexed images for Training
-        greyscale_image_sequence_val = greyscale_image_sequence # All images for Validation of Interpolated Frames
+        num_frames = greyscale_image_sequence.size(1)
+        split_idx = int(num_frames * val_split) 
+        greyscale_image_sequence_train = greyscale_image_sequence[:, :split_idx, :, :, :]
+        greyscale_image_sequence_val = greyscale_image_sequence[:, split_idx:, :, :, :]
         # Create TensorDatasets
-        train_data = TensorDataset(greyscale_image_sequence_train)
-        val_data = TensorDataset(greyscale_image_sequence_val)
+        train_data = TensorDataset(greyscale_image_sequence_train[:, 0:self.grayscale_images.size(0):2], greyscale_image_sequence_train[:, 1:self.grayscale_images.size(0):2])
+        val_data = TensorDataset(greyscale_image_sequence_val[:, 0:self.grayscale_images.size(0):2], greyscale_image_sequence_val[:, 1:self.grayscale_images.size(0):2])
         # Create DataLoaders
         train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)

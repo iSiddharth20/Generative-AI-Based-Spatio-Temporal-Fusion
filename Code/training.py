@@ -71,8 +71,13 @@ class Trainer():
             # Validation Loss Calculation
             self.model.eval() # Set the Model to Evaluation Mode
             with torch.no_grad():
-                val_loss = sum(self.loss_function(self.model(sequence, n_interpolate_frames), sequence).item() for sequence in val_data)  # Compute Total Validation Loss
-                val_loss /= len(val_data)  # Compute Average Validation Loss
+                val_loss = 0.0
+                for sequence, target in val_data:
+                    sequence = sequence.to(self.device)
+                    target = target.to(self.device)
+                    output = self.model(sequence, n_interpolate_frames)
+                    val_loss += self.loss_function(output, target).item()  # Calculate loss only on interpolated frames
+                val_loss /= len(val_data)
             # Print the epoch number and the validation loss
             print(f'Epoch : {epoch}, Validation Loss : {val_loss}')
             # If the current validation loss is lower than the best validation loss, save the model

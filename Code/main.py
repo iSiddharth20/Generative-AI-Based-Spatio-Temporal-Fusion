@@ -21,7 +21,6 @@ rgb_dir = '../Dataset/RGB'
 image_height = 400
 image_width = 600
 batch_size = 4
-val_split = 0.2
 
 
 def main():
@@ -41,13 +40,13 @@ def main():
     print('Importing Loss Functions Complete.')
 
     # Initialize AutoEncoder Model and Import Dataloader (Training, Validation)
-    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split)
+    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split=0.2)
     print('AutoEncoder Model Data Initialized.')
     model_autoencoder = Grey2RGBAutoEncoder()
     print('AutoEncoder Model Initialized.')
 
     # Initialize LSTM Model and Import Image Sequences (Training, Validation)
-    grey_sequence_train, grey_sequence_val = dataset.get_lstm_batches()
+    grey_sequence_train, grey_sequence_val = dataset.get_lstm_batches(val_split=0.8)
     print('LSTM Model Data Initialized.')
     C = 1 
     hidden_size = 64
@@ -93,14 +92,14 @@ def main():
     ''' 
     # Method-1
     try:
-        epochs = 5
+        epochs = 1
         print('M1 AutoEncoder Training Start.')
         model_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
         print('M1 AutoEncoder Training Complete.')
     except Exception as e:
         print(f"M1 AutoEncoder Training Error : \n{e}")
     try:
-        epochs = 5
+        epochs = 1
         print('M1 LSTM Training Start.')
         model_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
         print('M1 LSTM Training Complete.') 
@@ -109,7 +108,7 @@ def main():
 
     # Method-2
     try:
-        epochs = 5
+        epochs = 1
         print('M2 AutoEncoder Training Start.')
         model_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
         print('M2 AutoEncoder Training Complete.')
@@ -119,7 +118,7 @@ def main():
 
     # Method-3
     try:
-        epochs = 5
+        epochs = 1
         print('M3 LSTM Training Start.')
         model_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
         print('M3 LSTM Training Complete.') 
