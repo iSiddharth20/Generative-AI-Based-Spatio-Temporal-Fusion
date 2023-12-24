@@ -14,8 +14,10 @@ import torch
 # Define Training Class
 class Trainer():
     def __init__(self, model, loss_function, model_save_path):
-        # Define the model
-        self.model = model
+        # Define the device
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # Define the model and move it to the device
+        self.model = model.to(self.device)
         # Define the loss function
         self.loss_function = loss_function
         # Define the optimizer
