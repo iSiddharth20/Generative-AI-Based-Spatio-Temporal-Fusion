@@ -58,32 +58,49 @@ class Trainer():
 
     def train_lstm(self, epochs, n_interpolate_frames, train_data, val_data):
         min_val_loss = float('inf')  # Initialize the minimum validation loss to infinity
-        # Loop over the number of epochs
+        
         for epoch in range(epochs):
-            self.model.train() # Set the model to training mode
+            self.model.train()  # Set the model to training mode
+            train_loss = 0.0
+            
             # Training Loop
-            for sequence, target in train_data:
-                self.optimizer.zero_grad() # Reset the gradients accumulated from the previous iteration
-                sequence, target = sequence.to(self.device), target.to(self.device)  # Moved both to the device
-                output = self.model(sequence, n_interpolate_frames)
-                loss = self.loss_function(output, target) # Compute Training Loss
-                loss.backward() # Backward Pass
-                self.optimizer.step() # Update Model Parameters
+            for sequences, targets in train_data:
+                self.optimizer.zero_grad()  # Reset the gradients accumulated from the previous iteration
+                sequences = sequences.to(self.device)
+                targets = targets.to(self.device)
+                outputs = self.model(sequences, n_interpolate_frames)
+                # Assuming the outputs and targets are of shape [batch_size, seq_len, channels, height, width]
+                # Compute Training Loss only on the interpolated frames (not on the original frames)
+                loss = self.loss_function(outputs[:, 1:-1], targets[:, 1:-1])
+                loss.backward()  # Backward Pass
+                self.optimizer.step()  # Update Model Parameters
+                train_loss += loss.item()
+            
+            train_loss /= len(train_data)
+            print(f'Epoch : {epoch}, Training Loss : {train_loss}')
+
             # Validation Loss Calculation
-            self.model.eval() # Set the Model to Evaluation Mode
+            self.model.eval()  # Set the Model to Evaluation Mode
+            val_loss = 0.0
+            
             with torch.no_grad():
-                val_loss = 0.0
-                for sequence, target in val_data:
-                    sequence = sequence.to(self.device)
-                    target = target.to(self.device)
-                    output = self.model(sequence, n_interpolate_frames)
-                    val_loss += self.loss_function(output, target).item()  # Calculate loss only on interpolated frames
+                for sequences, targets in val_data:
+                    sequences = sequences.to(self.device)
+                    targets = targets.to(self.device)
+                    outputs = self.model(sequences, n_interpolate_frames)
+                    # Compute Validation Loss only on interpolated frames (not on the original frames)
+                    loss = self.loss_function(outputs[:, 1:-1], targets[:, 1:-1])
+                    val_loss += loss.item()
+                
                 val_loss /= len(val_data)
+            
             # Print the epoch number and the validation loss
             print(f'Epoch : {epoch}, Validation Loss : {val_loss}')
+
             # If the current validation loss is lower than the best validation loss, save the model
             if val_loss < min_val_loss:
-                min_val_loss = val_loss # Update the best validation loss
-                self.save_model() # Save the model
+                min_val_loss = val_loss  # Update the best validation loss
+                self.save_model()  # Save the model
+                
         # Return the Trained Model
         return self.model

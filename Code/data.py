@@ -65,18 +65,39 @@ class Dataset:
         return train_loader, val_loader
 
     # Function to get batches of original_sequence-interpolated_sequence from data (This Functionality is for LSTM Component of the Program)
-    def get_lstm_batches(self,val_split):
-        # Add an extra dimension to the grayscale images tensor
-        greyscale_image_sequence = self.grayscale_images.unsqueeze(0)
-        # Split the sequence into training and validation sets
-        num_frames = greyscale_image_sequence.size(1)
-        split_idx = int(num_frames * val_split) 
-        greyscale_image_sequence_train = greyscale_image_sequence[:, :split_idx, :, :, :]
-        greyscale_image_sequence_val = greyscale_image_sequence[:, split_idx:, :, :, :]
-        # Create TensorDatasets
-        train_data = TensorDataset(greyscale_image_sequence_train[:, 0:self.grayscale_images.size(0):2], greyscale_image_sequence_train[:, 1:self.grayscale_images.size(0):2])
-        val_data = TensorDataset(greyscale_image_sequence_val[:, 0:self.grayscale_images.size(0):2], greyscale_image_sequence_val[:, 1:self.grayscale_images.size(0):2])
-        # Create DataLoaders
-        train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
-        val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
+    def get_lstm_batches(self, val_split):
+        # Assumption: self.grayscale_images is a tensor with shape [num_samples, channels, height, width]
+        
+        # Calculate the number of frames for training and validation
+        num_frames = self.grayscale_images.size(0)
+        train_frames = int(num_frames * (1 - val_split))
+        val_frames = num_frames - train_frames
+        
+        # Split the frames into training and validation sets
+        train_frames_tensor = self.grayscale_images[:train_frames]
+        val_frames_tensor = self.grayscale_images[-val_frames:]
+        
+        # Create sequences (8 frames per sequence here) for training and validation
+        # The goal is to predict 7 intermediate frames from 8 input frames
+        input_seq_len = 8
+        target_seq_len = 7
+        
+        train_seqs = train_frames_tensor.unfold(0, input_seq_len, 1)
+        train_targets = train_seqs.roll(-1, dims=0)[:, :target_seq_len]  # Shift temporal sequence by one step
+        
+        val_seqs = val_frames_tensor.unfold(0, input_seq_len, 1)
+        val_targets = val_seqs.roll(-1, dims=0)[:, :target_seq_len]  # Shift temporal sequence by one step
+        
+        # Make sure there is no overlap between training and validation targets
+        if train_seqs[-1].equals(val_seqs[0]):
+            val_seqs = val_seqs[1:]
+            val_targets = val_targets[1:]
+        
+        # Create tensor datasets and data loaders
+        train_dataset = TensorDataset(train_seqs, train_targets)
+        val_dataset = TensorDataset(val_seqs, val_targets)
+        
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=self.batch_size)
+        
         return train_loader, val_loader
