@@ -81,7 +81,7 @@ class FrameInterpolationLSTM(nn.Module):
         for t in range(seq_len - 1):
             current_frame = layer_input[:, t]
             next_frame = layer_input[:, t + 1]
-            interpolations = [current_frame.unsqueeze(1)]
+            interpolations = [current_frame]
 
             for layer in range(self.num_layers):
                 h_cur, c_cur = hidden_states[layer], cell_states[layer]

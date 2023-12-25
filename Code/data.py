@@ -75,8 +75,8 @@ class Dataset:
         greyscale_image_sequence_train = greyscale_image_sequence[:, :split_idx, :, :, :]
         greyscale_image_sequence_val = greyscale_image_sequence[:, split_idx:, :, :, :]
         # Create TensorDatasets
-        train_data = TensorDataset(greyscale_image_sequence_train[:, ::2], greyscale_image_sequence_train[:, 1::2])
-        val_data = TensorDataset(greyscale_image_sequence_val[:, ::2], greyscale_image_sequence_val[:, 1::2])
+        train_data = TensorDataset(greyscale_image_sequence_train[:, ::2].squeeze(dim=0), greyscale_image_sequence_train[:, 1::2].squeeze(dim=0))
+        val_data = TensorDataset(greyscale_image_sequence_val[:, ::2].squeeze(dim=0), greyscale_image_sequence_val[:, 1::2].squeeze(dim=0))
         # Create DataLoaders
         train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
