@@ -22,8 +22,12 @@ class LossMEP(nn.Module):
 
     def forward(self, output, target):
         mse_loss = self.mse(output, target)  # Compute MSE Loss
-        entropy = -torch.sum(target * torch.log(output + 1e-8), dim=-1).mean() # Compute Entropy
-        composite_loss = self.alpha * mse_loss + (1 - self.alpha) * entropy # Compute Composite Loss
+        # Normalize the output tensor along the last dimension to represent probabilities
+        output_normalized = torch.softmax(output, dim=-1)
+        # Compute Entropy
+        entropy = -torch.sum(target * torch.log(output_normalized + 1e-8), dim=-1).mean()
+        # Compute Composite Loss
+        composite_loss = self.alpha * mse_loss + (1 - self.alpha) * entropy
         return composite_loss
 
 '''
