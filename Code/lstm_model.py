@@ -88,7 +88,7 @@ class FrameInterpolationLSTM(nn.Module):
                 h_next, c_next = self.conv_lstm_cells[layer](current_frame.unsqueeze(1), (h_cur, c_cur))
                 current_frame = h_next[:, -1]
 
-                h_n, c_n = self.conv_lstm_cells[layer](next_frame.unsqueeze(1), (h_cur, c_cur))
+                h_n, c_n = self.conv_lstm_cells[layer](next_frame.unsqueeze(1), (h_next, c_next))
                 next_frame_pred = h_n[:, -1]
                 hidden_states[layer], cell_states[layer] = h_n, c_n
 
@@ -104,3 +104,4 @@ class FrameInterpolationLSTM(nn.Module):
 
         full_sequence = torch.cat(interpolated_sequences, dim=1)
         return full_sequence
+

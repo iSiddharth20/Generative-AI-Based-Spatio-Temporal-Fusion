@@ -67,22 +67,21 @@ class Dataset:
 
     # Function to get batches of original_sequence-interpolated_sequence from data (This Functionality is for LSTM Component of the Program)
     def get_lstm_batches(self, val_split):
-        greyscale_image_sequence = self.grayscale_images.unsqueeze(0)
-        num_frames = greyscale_image_sequence.size(1)
+        num_frames = self.grayscale_images.size(0)
         split_idx = int(num_frames * val_split) 
         # Ensure even number of frames for splitting into pairs.
         split_idx = split_idx if split_idx % 2 == 0 else split_idx - 1
-        greyscale_image_sequence_train = greyscale_image_sequence[:, :split_idx, :, :, :]
-        greyscale_image_sequence_val = greyscale_image_sequence[:, split_idx:, :, :, :]
+        grayscale_images_train = self.grayscale_images[:split_idx]
+        grayscale_images_val = self.grayscale_images[split_idx:]
         # Ensure the same length for both odd and even splits.
         even_indices = range(0, split_idx, 2)
         odd_indices = range(1, split_idx, 2)
-        train_data = TensorDataset(greyscale_image_sequence_train[:, even_indices].squeeze(dim=0), 
-                                    greyscale_image_sequence_train[:, odd_indices].squeeze(dim=0))
-        even_indices = range(0, greyscale_image_sequence_val.size(1), 2)
-        odd_indices = range(1, greyscale_image_sequence_val.size(1), 2)
-        val_data = TensorDataset(greyscale_image_sequence_val[:, even_indices].squeeze(dim=0),
-                                    greyscale_image_sequence_val[:, odd_indices].squeeze(dim=0))
+        train_data = TensorDataset(grayscale_images_train[even_indices], 
+                                    grayscale_images_train[odd_indices])
+        even_indices = range(0, len(grayscale_images_val), 2)
+        odd_indices = range(1, len(grayscale_images_val), 2)
+        val_data = TensorDataset(grayscale_images_val[even_indices],
+                                 grayscale_images_val[odd_indices])
         # Create DataLoaders
         train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
