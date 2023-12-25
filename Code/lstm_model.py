@@ -67,7 +67,7 @@ class FrameInterpolationLSTM(nn.Module):
                               padding=0)
 
     def forward(self, x, n):
-        batch_size, seq_len, _, h, w = x.shape
+        batch_size, seq_len, _, (h, w) = x.shape
         layer_input = x
         hidden_states = []
         cell_states = []
