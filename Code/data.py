@@ -67,18 +67,23 @@ class Dataset:
 
     # Function to get batches of original_sequence-interpolated_sequence from data (This Functionality is for LSTM Component of the Program)
     def get_lstm_batches(self, val_split):
-        # Add an extra dimension to the grayscale images tensor
         greyscale_image_sequence = self.grayscale_images.unsqueeze(0)
-        # Split the sequence into training and validation sets
         num_frames = greyscale_image_sequence.size(1)
         split_idx = int(num_frames * val_split) 
+        # Ensure even number of frames for splitting into pairs.
+        split_idx = split_idx if split_idx % 2 == 0 else split_idx - 1
         greyscale_image_sequence_train = greyscale_image_sequence[:, :split_idx, :, :, :]
         greyscale_image_sequence_val = greyscale_image_sequence[:, split_idx:, :, :, :]
-        # Create TensorDatasets
-        train_data = TensorDataset(greyscale_image_sequence_train[:, ::2].squeeze(dim=0), greyscale_image_sequence_train[:, 1::2].squeeze(dim=0))
-        val_data = TensorDataset(greyscale_image_sequence_val[:, ::2].squeeze(dim=0), greyscale_image_sequence_val[:, 1::2].squeeze(dim=0))
+        # Ensure the same length for both odd and even splits.
+        even_indices = range(0, split_idx, 2)
+        odd_indices = range(1, split_idx, 2)
+        train_data = TensorDataset(greyscale_image_sequence_train[:, even_indices].squeeze(dim=0), 
+                                    greyscale_image_sequence_train[:, odd_indices].squeeze(dim=0))
+        even_indices = range(0, greyscale_image_sequence_val.size(1), 2)
+        odd_indices = range(1, greyscale_image_sequence_val.size(1), 2)
+        val_data = TensorDataset(greyscale_image_sequence_val[:, even_indices].squeeze(dim=0),
+                                    greyscale_image_sequence_val[:, odd_indices].squeeze(dim=0))
         # Create DataLoaders
         train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
         return train_loader, val_loader
-
