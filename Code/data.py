@@ -11,7 +11,8 @@ from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import torch
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, Dataset
+
 
 class Dataset:
     def __init__(self, grayscale_dir, rgb_dir, image_size, batch_size):
@@ -65,7 +66,7 @@ class Dataset:
         return train_loader, val_loader
 
     # Function to get batches of original_sequence-interpolated_sequence from data (This Functionality is for LSTM Component of the Program)
-    def get_lstm_batches(self,val_split):
+    def get_lstm_batches(self, val_split):
         # Add an extra dimension to the grayscale images tensor
         greyscale_image_sequence = self.grayscale_images.unsqueeze(0)
         # Split the sequence into training and validation sets
@@ -74,8 +75,8 @@ class Dataset:
         greyscale_image_sequence_train = greyscale_image_sequence[:, :split_idx, :, :, :]
         greyscale_image_sequence_val = greyscale_image_sequence[:, split_idx:, :, :, :]
         # Create TensorDatasets
-        train_data = TensorDataset(greyscale_image_sequence_train[:, 0:self.grayscale_images.size(0):2], greyscale_image_sequence_train[:, 1:self.grayscale_images.size(0):2])
-        val_data = TensorDataset(greyscale_image_sequence_val[:, 0:self.grayscale_images.size(0):2], greyscale_image_sequence_val[:, 1:self.grayscale_images.size(0):2])
+        train_data = TensorDataset(greyscale_image_sequence_train[:, ::2], greyscale_image_sequence_train[:, 1::2])
+        val_data = TensorDataset(greyscale_image_sequence_val[:, ::2], greyscale_image_sequence_val[:, 1::2])
         # Create DataLoaders
         train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)

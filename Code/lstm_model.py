@@ -45,8 +45,13 @@ class ConvLSTMCell(nn.Module):
     def init_hidden(self, batch_size, image_size):
         # height, width = image_size
         height, width = image_size[0], image_size[1]
+<<<<<<< HEAD
         return (torch.zeros(batch_size, self.hidden_channels, height, width, device=self.conv.weight.device),
                 torch.zeros(batch_size, self.hidden_channels, height, width, device=self.conv.weight.device))
+=======
+        return (torch.zeros(batch_size, self.hidden_channels, *image_size, device=self.conv.weight.device),
+                torch.zeros(batch_size, self.hidden_channels, *image_size, device=self.conv.weight.device))
+>>>>>>> 97f730cdb1dea4ff54fee34de4d08002fcbc96e7
 
 # Frame Interpolation model using ConvLSTM cells
 class FrameInterpolationLSTM(nn.Module):
@@ -73,7 +78,7 @@ class FrameInterpolationLSTM(nn.Module):
         cell_states = []
 
         for i in range(self.num_layers):
-            h, c = self.conv_lstm_cells[i].init_hidden(batch_size, (h, w))
+            h, c = self.conv_lstm_cells[i].init_hidden(batch_size, (h.item(), w.item()))
             hidden_states.append(h)
             cell_states.append(c)
 

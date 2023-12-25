@@ -47,7 +47,7 @@ def main():
     print('AutoEncoder Model Initialized.')
 
     # Initialize LSTM Model and Import Image Sequences (Training, Validation)
-    grey_sequence_train, grey_sequence_val = dataset.get_lstm_batches(val_split=0.8)
+    grey_sequence_train, grey_sequence_val = dataset.get_lstm_batches(val_split=0.2)
     print('LSTM Model Data Initialized.')
     C = 1 
     hidden_size = 64
