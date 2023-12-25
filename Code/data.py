@@ -80,3 +80,4 @@ class Dataset:
         train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
         return train_loader, val_loader
+
