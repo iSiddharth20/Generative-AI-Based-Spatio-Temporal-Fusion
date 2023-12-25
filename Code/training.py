@@ -44,6 +44,7 @@ class Trainer():
             # Validation Loss Calculation
             self.model.eval()  # Set the Model to Evaluation Mode
             with torch.no_grad():  # Disable gradient computation
+                val_loss = 0.0
                 val_loss = sum(self.loss_function(self.model(input.to(self.device)), target.to(self.device)).item() for input, target in val_loader)  # Compute Total Validation Loss
                 val_loss /= len(val_loader)  # Compute Average Validation Loss
             # Print the epoch number and the validation loss

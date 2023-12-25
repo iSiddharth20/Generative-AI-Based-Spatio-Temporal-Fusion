@@ -12,6 +12,7 @@ from training import Trainer
 
 # Import Necessary Libraries
 import os
+import traceback
 
 # Define Working Directories
 grayscale_dir = '../Dataset/Greyscale'
@@ -98,6 +99,7 @@ def main():
         print('M1 AutoEncoder Training Complete.')
     except Exception as e:
         print(f"M1 AutoEncoder Training Error : \n{e}")
+        traceback.print_exc()
     try:
         epochs = 1
         print('M1 LSTM Training Start.')
@@ -105,6 +107,7 @@ def main():
         print('M1 LSTM Training Complete.') 
     except Exception as e:
         print(f"M1 LSTM Training Error : \n{e}")
+        traceback.print_exc()
 
     # Method-2
     try:
@@ -114,6 +117,7 @@ def main():
         print('M2 AutoEncoder Training Complete.')
     except Exception as e:
         print(f"M2 AutoEncoder Training Error : \n{e}")
+        traceback.print_exc()
     # Method-2 LSTM == Method-1 LSTM, no need to train again
 
     # Method-3
@@ -124,6 +128,7 @@ def main():
         print('M3 LSTM Training Complete.') 
     except Exception as e:
         print(f"M3 LSTM Training Error : \n{e}")
+        traceback.print_exc()
     # Method-3 AutoEncoder == Method-1 AutoEncoder, no need to train again
 
 

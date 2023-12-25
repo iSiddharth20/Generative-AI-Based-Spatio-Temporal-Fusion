@@ -51,9 +51,10 @@ class ConvLSTMCell(nn.Module):
         return h_next, c_next
 
     def init_hidden(self, batch_size, image_size):
-        # Initialize the hidden state and cell state to zeros
-        # height, width = image_size
-        height, width = int(image_size[0]), int(image_size[1])
+        # Ensure that image_size is a tuple of (height, width)
+        if not isinstance(image_size, tuple) or not len(image_size) == 2:
+            raise ValueError("image_size must be a tuple of (height, width)")
+        height, width = image_size
         return (torch.zeros(batch_size, self.hidden_channels, height, width, device=self.conv.weight.device),
                 torch.zeros(batch_size, self.hidden_channels, height, width, device=self.conv.weight.device))
     
@@ -80,13 +81,14 @@ class FrameInterpolationLSTM(nn.Module):
     def forward(self, x, n):
         # Get the batch size, sequence length, and image height and width from the input
         batch_size, seq_len, _, h, w = x.shape
+        image_height, image_width = h, w
         # Initialize the input for the first layer and the lists of hidden and cell states
         layer_input = x
         hidden_states = []
         cell_states = []
         # Initialize the hidden and cell states for each layer
         for i in range(self.num_layers):
-            h, c = self.conv_lstm_cells[i].init_hidden(batch_size, (h, w))
+            h, c = self.conv_lstm_cells[i].init_hidden(batch_size, (image_height, image_width))
             hidden_states.append(h)
             cell_states.append(c)
         # Initialize the list of interpolated sequences with the first frame
@@ -103,7 +105,8 @@ class FrameInterpolationLSTM(nn.Module):
                 hidden_states[layer], cell_states[layer] = self.conv_lstm_cells[layer](current_frame, (hidden_states[layer], cell_states[layer]))
                 current_frame = hidden_states[layer]
                 # Predict the next frame and store the next hidden and cell states
-                next_frame_pred, (h_n, c_n) = self.conv_lstm_cells[layer](next_frame, (hidden_states[layer], cell_states[layer]))
+                h_n, c_n = self.conv_lstm_cells[layer](next_frame, (hidden_states[layer], cell_states[layer]))
+                next_frame_pred = h_n
                 hidden_states_next, cell_states_next = h_n, c_n
             # Generate `n` interpolated frames between the current frame and the predicted next frame
             for j in range(1, n + 1):
