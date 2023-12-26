@@ -8,6 +8,7 @@ Module for Loss Functions :
 # Import Necessary Libraries
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from pytorch_msssim import SSIM
 
 '''
@@ -18,10 +19,9 @@ class LossMEP(nn.Module):
     def __init__(self, alpha=0.5):
         super(LossMEP, self).__init__()
         self.alpha = alpha  # Weighting factor for the loss
-        self.mse = nn.MSELoss()  # Mean Squared Error loss
 
     def forward(self, output, target):
-        mse_loss = self.mse(output, target)  # Compute MSE Loss
+        mse_loss = F.mse_loss(output, target)  # Compute MSE Loss using functional API
         # Normalize the output tensor along the last dimension to represent probabilities
         output_normalized = torch.softmax(output, dim=-1)
         # Compute Entropy
@@ -35,12 +35,8 @@ Class for Mean Squared Error (MSE) Loss
     - Maximum Likelihood Principle
 '''
 class LossMSE(nn.Module):
-    def __init__(self):
-        super(LossMSE, self).__init__()
-        self.mse = nn.MSELoss()  # Mean Squared Error loss
-
     def forward(self, output, target):
-        likelihood_loss = self.mse(output, target)  # Compute MSE loss
+        likelihood_loss = F.mse_loss(output, target)  # Compute MSE loss using functional API
         return likelihood_loss
 
 '''
@@ -51,10 +47,8 @@ Class for Structural Similarity Index Measure (SSIM) Loss
 class SSIMLoss(nn.Module):
     def __init__(self, data_range=1, size_average=True):
         super(SSIMLoss, self).__init__()
-        self.data_range = data_range  # The range of the input image (usually 1.0 or 255)
-        self.size_average = size_average  # If True, the SSIM of all windows are averaged
         # Initialize SSIM module
-        self.ssim_module = SSIM(data_range=self.data_range, size_average=self.size_average)
+        self.ssim_module = SSIM(data_range=data_range, size_average=size_average)
 
     def forward(self, img1, img2):
         ssim_value = self.ssim_module(img1, img2)  # Compute SSIM
