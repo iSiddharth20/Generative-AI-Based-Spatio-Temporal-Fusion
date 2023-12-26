@@ -34,8 +34,10 @@ class CustomDataset(Dataset):
     def __len__(self):
         return len(self.filenames)
 
-    # Get a single item from the dataset
+    # Get a single item or a slice from the dataset
     def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            return [self[i] for i in range(*idx.indices(len(self)))]
         # Get paths for grayscale and RGB images
         grayscale_path = self.filenames[idx]
         rgb_path = self.rgb_dir / grayscale_path.name
