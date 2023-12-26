@@ -36,8 +36,10 @@ class Trainer():
             # Training Loop
             for input, target in train_loader:  # Input - Grayscale Image, Target - RGB Image
                 input, target = input.to(self.device), target.to(self.device)
+                print(f'Input shape: {input.shape}, Target shape: {target.shape}')
                 output = self.model(input)  # Forward Pass
                 loss = self.loss_function(output, target)  # Compute Training Loss
+                print(f'Epoch: {epoch}, Training loss: {loss.item()}')
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
                 loss.backward()  # Backward Pass
                 self.optimizer.step()  # Update Model Parameters
@@ -60,11 +62,13 @@ class Trainer():
         min_val_loss = float('inf')  # Initialize the minimum validation loss to infinity
         
         for epoch in range(epochs):
+            print(f'Epoch: {epoch}, Training')
             self.model.train()  # Set the model to training mode
             train_loss = 0.0
             
             # Training Loop
             for sequences, targets in train_data:
+                print(f'Input sequence shape: {sequences.shape}, Target sequence shape: {targets.shape}')
                 self.optimizer.zero_grad()  # Reset the gradients accumulated from the previous iteration
                 sequences = sequences.to(self.device)
                 targets = targets.to(self.device)
@@ -74,6 +78,7 @@ class Trainer():
                 # Assuming the outputs and targets are of shape [batch_size, seq_len, channels, height, width]
                 # Compute Training Loss only on the interpolated frames (not on the original frames)
                 loss = self.loss_function(outputs[:, 1:-1], targets[:, 1:-1])
+                print(f'Train loss: {loss.item()}')
                 loss.backward()  # Backward Pass
                 self.optimizer.step()  # Update Model Parameters
                 train_loss += loss.item()
@@ -87,6 +92,7 @@ class Trainer():
             
             with torch.no_grad():
                 for sequences, targets in val_data:
+                    print(f'Epoch: {epoch}, Validation')
                     sequences = sequences.to(self.device)
                     targets = targets.to(self.device)
                     outputs = self.model(sequences, n_interpolate_frames)
@@ -97,6 +103,7 @@ class Trainer():
                     val_loss += loss.item()
                 
                 val_loss /= len(val_data)
+                print(f'Validation loss: {val_loss}')
             
             # Print the epoch number and the validation loss
             print(f'Epoch : {epoch}, Validation Loss : {val_loss}')

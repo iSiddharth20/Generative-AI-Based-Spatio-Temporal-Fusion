@@ -33,6 +33,7 @@ class ConvLSTMCell(nn.Module):
         # Concatenate input tensor and hidden state along channel dimension
         combined = torch.cat([input_tensor, h_cur], dim=1)
         # Apply convolution
+        print(f'Input tensor shape: {input_tensor.shape}, Hidden state shape: {h_cur.shape}')
         combined_conv = self.conv(combined)
         # Split convolution output into four parts for LSTM gates
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_channels, dim=1)

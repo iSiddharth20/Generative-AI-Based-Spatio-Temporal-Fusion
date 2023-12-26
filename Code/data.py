@@ -59,6 +59,10 @@ class CustomDataset(Dataset):
         train_dataset, val_dataset = random_split(self, [train_size, val_size])
         # Create dataloaders for the training and validation sets
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        print("Sample from autoencoder training data:")
+        for sample in train_loader:
+            print(f'Input shape: {sample[0].shape}, Target shape: {sample[1].shape}')
+            break  # Just print the first sample and break
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
         # Return the training and validation dataloaders
         return train_loader, val_loader
@@ -81,6 +85,10 @@ class CustomDataset(Dataset):
         val_data = [grayscale_images_val[i] for i in even_indices]
         # Create DataLoaders
         train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
+        print("Sample from LSTM training data:")
+        for sample in train_loader:
+            print(f'Input sequence shape: {sample[0].shape}, Target sequence shape: {sample[1].shape}')
+            break  # Just print the first sample and break
         val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
         # Return the training and validation dataloaders
         return train_loader, val_loader

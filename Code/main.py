@@ -45,6 +45,8 @@ def main():
     print('AutoEncoder Model Data Initialized.')
     model_autoencoder = Grey2RGBAutoEncoder()
     print('AutoEncoder Model Initialized.')
+    print('AutoEncoder Model Summary:')
+    print(model_autoencoder)
 
     # Initialize LSTM Model and Import Image Sequences (Training, Validation)
     grey_sequence_train, grey_sequence_val = dataset.get_lstm_batches(val_split=0.2)
@@ -56,6 +58,8 @@ def main():
     kernel_size = (3, 3)
     model_lstm = FrameInterpolationLSTM(C, hidden_size, kernel_size, num_layers)
     print('LSTM Model Initialized.')
+    print('LSTM Model Summary:')
+    print(model_lstm)
 
     '''
     Initialize Trainer Objects
