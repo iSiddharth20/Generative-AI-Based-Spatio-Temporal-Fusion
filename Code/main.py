@@ -4,7 +4,7 @@ Main Module
 '''
 
 # Importing Custom Modules
-from data import Dataset
+from data import CustomDataset
 from lstm_model import FrameInterpolationLSTM
 from autoencoder_model import Grey2RGBAutoEncoder
 from losses import LossMSE, LossMEP, SSIMLoss
@@ -28,7 +28,7 @@ def main():
     # Initialize Dataset Object (PyTorch Tensors)
     print('Loading Dataset Initiated.')
     try:
-        dataset = Dataset(grayscale_dir, rgb_dir, (image_height, image_width), batch_size)
+        dataset = CustomDataset(grayscale_dir, rgb_dir, (image_height, image_width), batch_size)
         print('Loading Dataset Completed.')
     except Exception as e:
         print(f"Loading Dataset In-Complete : \n{e}")
