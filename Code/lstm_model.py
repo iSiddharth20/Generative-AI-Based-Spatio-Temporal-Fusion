@@ -76,7 +76,7 @@ class FrameInterpolationLSTM(nn.Module):
 
     def forward(self, x, n):
         # Get batch size and sequence length from input
-        batch_size, seq_len, _, _ = x.shape
+        batch_size, seq_len, chanel, height, width = x.shape
         layer_input = x
         hidden_states = []
         cell_states = []
