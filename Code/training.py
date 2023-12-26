@@ -69,6 +69,8 @@ class Trainer():
                 sequences = sequences.to(self.device)
                 targets = targets.to(self.device)
                 outputs = self.model(sequences, n_interpolate_frames)
+                # sequences.requires_grad_()  # Ensure gradients are required for the input to ConvLSTM
+                # targets.requires_grad_(False)  # Ensure targets do not require gradients
                 # Assuming the outputs and targets are of shape [batch_size, seq_len, channels, height, width]
                 # Compute Training Loss only on the interpolated frames (not on the original frames)
                 loss = self.loss_function(outputs[:, 1:-1], targets[:, 1:-1])
@@ -89,7 +91,9 @@ class Trainer():
                     targets = targets.to(self.device)
                     outputs = self.model(sequences, n_interpolate_frames)
                     # Compute Validation Loss only on interpolated frames (not on the original frames)
-                    loss = self.loss_function(outputs[:, 1:-1], targets[:, 1:-1])
+                    predicted_interpolated_frames = outputs[:, 1:-1].reshape(-1, *outputs.shape[2:])  # Reshape to (B * seq_len, C, H, W)
+                    true_interpolated_frames = targets[:, 1:-1].reshape(-1, *targets.shape[2:])  # Same reshaping for targets
+                    loss = self.loss_function(predicted_interpolated_frames, true_interpolated_frames)
                     val_loss += loss.item()
                 
                 val_loss /= len(val_data)

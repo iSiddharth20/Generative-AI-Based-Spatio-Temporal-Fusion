@@ -69,7 +69,7 @@ def main():
     trainer_lstm_baseline = Trainer(model_lstm, loss_mse, model_save_path_lstm)
     print('Baseline LSTM Trainer Initialized.')
 
-    # Method 2 : Composite Loss for AutoEncoder and Mean Squared Error Loss for LSTM
+    # Method 2 : Composite Loss (MSE + MaxEnt) for AutoEncoder and Mean Squared Error Loss for LSTM
     os.makedirs('../Models/Method2', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method2/model_autoencoder_m2.pth'
     trainer_autoencoder_m2 = Trainer(model_autoencoder, loss_mep, model_save_path_ae)
@@ -83,7 +83,7 @@ def main():
     trainer_lstm_m3 = Trainer(model_lstm, loss_ssim, model_save_path_lstm)
     print('Method-3 LSTM Trainer Initialized.')
 
-    # Method 4 : Proposed Method : Composite Loss for AutoEncoder and SSIM Loss for LSTM
+    # Method 4 : Proposed Method : Composite Loss (MSE + MaxEnt) for AutoEncoder and SSIM Loss for LSTM
     print('Method-4 AutoEncoder == Method-2 AutoEncoder')
     print('Method-4 LSTM == Method-3 LSTM')
 
