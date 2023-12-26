@@ -10,6 +10,7 @@ from PIL import ImageFile
 from pathlib import Path
 from torch.utils.data import DataLoader, Dataset, random_split
 import torchvision.transforms as transforms
+import torch
 
 # Allow loading of truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
