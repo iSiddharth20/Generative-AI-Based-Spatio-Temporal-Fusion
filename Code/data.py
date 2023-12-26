@@ -68,28 +68,62 @@ class CustomDataset(Dataset):
         return train_loader, val_loader
 
     # Get batches for LSTM training
-    def get_lstm_batches(self, val_split):
-        # Calculate the split index
-        num_frames = len(self)
-        split_idx = int(num_frames * val_split) 
-        # Ensure even number of frames for splitting into pairs
-        split_idx = split_idx if split_idx % 2 == 0 else split_idx - 1
-        # Split grayscale images into training and validation sets
-        grayscale_images_train = self[:split_idx]
-        grayscale_images_val = self[split_idx:]
-        # Ensure the same length for both odd and even splits
-        odd_indices = range(1, split_idx, 2)
-        even_indices = range(0, split_idx, 2)
-        # Create training and validation data
-        train_data = [grayscale_images_train[i] for i in odd_indices]
-        val_data = [grayscale_images_val[i] for i in even_indices]
-        # Create DataLoaders
-        train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
-        print("Sample from LSTM training data:")
-        for sample in train_loader:
-            print(f'Input sequence shape: {sample[0].shape}, Target sequence shape: {sample[1].shape}')
-            break  # Just print the first sample and break
-        val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
-        # Return the training and validation dataloaders
+    def get_lstm_batches(self, val_split, n=1):
+        # Calculate the number of samples to include in the validation set
+        val_size = int(val_split * len(self))
+        train_size = len(self) - val_size
+
+        # Split the dataset into training and validation sets
+        all_indices = list(range(len(self)))
+        train_indices = all_indices[:train_size]
+        val_indices = all_indices[train_size:]
+
+        # Function to generate input-target sequence pairs
+        def generate_sequences(indices):
+            input_sequences = []  # To store input sequences (odd-indexed frames)
+            target_sequences = []  # To store target sequences (full frame sequences)
+
+            for start_idx in range(0, len(indices) - 1, 2):  # Step by 2 to get odd-indexed frames
+                end_idx = start_idx + 2 * n + 1  # Calculate end index of the sequence
+                if end_idx > len(indices):
+                    break  # If the end index goes beyond the dataset size, stop adding sequences
+                
+                # Extract the input sequence (odd-indexed frames)
+                input_seq_indices = indices[start_idx:end_idx:2]  # Every second frame (odd)
+                input_seq = [self[i][0] for i in input_seq_indices]  # Select grayscale image only
+                input_sequences.append(torch.stack(input_seq))
+                
+                # Extract the target sequence (full frames, including intermediate frames)
+                target_seq_indices = indices[start_idx:end_idx]  # All frames in the range
+                target_seq = [self[i][0] for i in target_seq_indices]  # Select grayscale image only
+                target_sequences.append(torch.stack(target_seq))
+
+            return torch.stack(input_sequences), torch.stack(target_sequences)
+
+        # Generate training and validation sequences
+        train_input_seqs, train_target_seqs = generate_sequences(train_indices)
+        val_input_seqs, val_target_seqs = generate_sequences(val_indices)
+
+        # Create custom Dataset for the LSTM sequences
+        class LSTMDataset(Dataset):
+            def __init__(self, input_seqs, target_seqs):
+                self.input_seqs = input_seqs
+                self.target_seqs = target_seqs
+
+            def __len__(self):
+                return len(self.input_seqs)
+
+            def __getitem__(self, idx):
+                return self.input_seqs[idx], self.target_seqs[idx]
+
+        # Instantiate the custom Dataset objects
+        train_dataset = LSTMDataset(train_input_seqs, train_target_seqs)
+        val_dataset = LSTMDataset(val_input_seqs, val_target_seqs)
+
+        # Create DataLoaders for the LSTM datasets
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
+
+        # Return the training and validation DataLoaders
         return train_loader, val_loader
 
