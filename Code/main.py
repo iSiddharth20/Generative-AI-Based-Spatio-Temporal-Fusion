@@ -72,7 +72,7 @@ def main():
     print('Baseline AutoEncoder Trainer Initialized.')
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
     lstm_optimizer = torch.optim.Adam(lstm_model.parameters(), lr=0.001)
-    trainer_lstm_baseline = Trainer(lstm_model, loss_mse, lstm_optimizer, model_save_path_lstm)
+    trainer_lstm_baseline = Trainer(model=lstm_model, loss_function=loss_mse, optimizer=lstm_optimizer, model_save_path=model_save_path_lstm)
     print('Baseline LSTM Trainer Initialized.')
 
     # Method 2 : Composite Loss (MSE + MaxEnt) for AutoEncoder and Mean Squared Error Loss for LSTM
@@ -87,7 +87,7 @@ def main():
     print('Method-3 AutoEncoder == Method-1 AutoEncoder')
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
     lstm_optimizer = torch.optim.Adam(lstm_model.parameters(), lr=0.001)
-    trainer_lstm_m3 = Trainer(lstm_model, loss_ssim, lstm_optimizer, model_save_path_lstm)
+    trainer_lstm_m3 = Trainer(model=lstm_model, loss_function=loss_ssim, optimizer=lstm_optimizer, model_save_path=model_save_path_lstm)
     print('Method-3 LSTM Trainer Initialized.')
 
     # Method 4 : Proposed Method : Composite Loss (MSE + MaxEnt) for AutoEncoder and SSIM Loss for LSTM

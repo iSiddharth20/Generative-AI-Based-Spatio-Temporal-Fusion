@@ -13,7 +13,7 @@ import torch
 
 # Define Training Class
 class Trainer():
-    def __init__(self, model, loss_function, model_save_path):
+    def __init__(self, model, loss_function, optimizer=None, model_save_path=None):
         # Define the device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # Define the model and move it to the device
@@ -21,7 +21,7 @@ class Trainer():
         # Define the loss function
         self.loss_function = loss_function
         # Define the optimizer
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
+        self.optimizer = optimizer if optimizer is not None else torch.optim.Adam(self.model.parameters(), lr=0.001)
         # Define the path to save the model
         self.model_save_path = model_save_path
 
