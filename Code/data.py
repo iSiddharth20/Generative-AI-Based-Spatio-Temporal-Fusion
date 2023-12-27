@@ -5,76 +5,117 @@ Importing Dataset, Converting it to PyTorch Tensors, Splitting it into Training 
 '''
 
 # Import Necessary Libraries
-import os
-import numpy as np
 from PIL import Image
 from PIL import ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+from pathlib import Path
+from torch.utils.data import DataLoader, Dataset, random_split
+import torchvision.transforms as transforms
 import torch
-from torch.utils.data import DataLoader, TensorDataset
 
-class Dataset:
-    def __init__(self, grayscale_dir, rgb_dir, image_size, batch_size):
-        self.grayscale_dir = grayscale_dir  # Directory for grayscale images
-        self.rgb_dir = rgb_dir  # Directory for RGB images
+# Allow loading of truncated images
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+# Define a custom dataset class
+class CustomDataset(Dataset):
+    def __init__(self, grayscale_dir, rgb_dir, image_size, batch_size, valid_exts=['.tif', '.tiff']):
+        # Initialize directory paths and parameters
+        self.grayscale_dir = Path(grayscale_dir)  # Directory for grayscale images
+        self.rgb_dir = Path(rgb_dir)  # Directory for RGB images
         self.image_size = image_size  # Size to which images will be resized
         self.batch_size = batch_size  # Batch size for training
-        '''
-        Load Greyscale and RGB images from respective directories
-        Store All Images of the Directory in a Normalized NumPy arrays
-        Convert the NumPy arrays to PyTorch Tensors
-        '''
-        self.grayscale_images = self.load_images_to_tensor(self.grayscale_dir)
-        self.rgb_images = self.load_images_to_tensor(self.rgb_dir)
+        self.valid_exts = valid_exts  # Valid file extensions
+        # Get list of valid image filenames
+        self.filenames = [f for f in self.grayscale_dir.iterdir() if f.suffix in self.valid_exts]
+        # Define transformations: resize and convert to tensor
+        self.transform = transforms.Compose([
+            transforms.Resize(self.image_size),
+            transforms.ToTensor()])
 
-    # Function to load images, resize and export as NumPy array
-    def load_images_to_tensor(self, directory):
-        images = []
-        # Loop through all files in the directory
-        for filename in os.listdir(directory):
-            # If the file is an image file
-            if filename.endswith('.tif') or filename.endswith('.tiff'):
-                img_path = os.path.join(directory, filename)
-                img = Image.open(img_path)
-                # Resize the image
-                img = img.resize(self.image_size)
-                # Append the normalized image to the list
-                img_array = np.array(img).astype('float32') / 255.0
-                # Add an extra dimension for grayscale images
-                if len(img_array.shape) == 2:
-                    img_array = np.expand_dims(img_array, axis=-1)
-                images.append(img_array)
-        # Return the PyTorch Tensor {with shape [m, C, H, W]} created from of NumPy Array of Images
-        images = np.array(images)
-        images = torch.tensor(images, dtype=torch.float32).permute(0, 3, 1, 2)
-        return images
-    
-    # Function to get batches of input-target pairs from data (This Functionality is for AutoEncoder Component of the Program)
-    def get_autoencoder_batches(self,val_split):
-        # Create a Dataset from the Tensors
-        dataset = TensorDataset(self.grayscale_images, self.rgb_images)
+    # Return the total number of images
+    def __len__(self):
+        return len(self.filenames)
+
+    # Get a single item or a slice from the dataset
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            return [self[i] for i in range(*idx.indices(len(self)))]
+        # Get paths for grayscale and RGB images
+        grayscale_path = self.filenames[idx]
+        rgb_path = self.rgb_dir / grayscale_path.name
+        # Open images
+        grayscale_img = Image.open(grayscale_path)
+        rgb_img = Image.open(rgb_path)
+        # Apply transformations
+        grayscale_img = self.transform(grayscale_img)
+        rgb_img = self.transform(rgb_img)
+        # Return transformed images
+        return grayscale_img, rgb_img
+
+    # Get batches for autoencoder training
+    def get_autoencoder_batches(self, val_split):
         # Calculate the number of samples to include in the validation set
-        val_size = int(val_split * len(dataset))
-        train_size = len(dataset) - val_size
+        val_size = int(val_split * len(self))
+        train_size = len(self) - val_size
         # Split the dataset into training and validation sets
-        train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])
+        train_dataset, val_dataset = random_split(self, [train_size, val_size])
         # Create dataloaders for the training and validation sets
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        print("Sample from autoencoder training data:")
+        for sample in train_loader:
+            print(f'Input shape: {sample[0].shape}, Target shape: {sample[1].shape}')
+            break  # Just print the first sample and break
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
         # Return the training and validation dataloaders
         return train_loader, val_loader
 
-    # Function to get batches of original_sequence-interpolated_sequence from data (This Functionality is for LSTM Component of the Program)
-    def get_lstm_batches(self):
-        # Add an extra dimension to the grayscale images tensor
-        greyscale_image_sequence = self.grayscale_images.unsqueeze(0)
-        # Split the sequence into training and validation sets
-        greyscale_image_sequence_train = greyscale_image_sequence[:, 1::2]  # All odd-indexed images for Training
-        greyscale_image_sequence_val = greyscale_image_sequence # All images for Validation of Interpolated Frames
-        # Create TensorDatasets
-        train_data = TensorDataset(greyscale_image_sequence_train)
-        val_data = TensorDataset(greyscale_image_sequence_val)
-        # Create DataLoaders
-        train_loader = DataLoader(train_data, batch_size=self.batch_size, shuffle=True)
-        val_loader = DataLoader(val_data, batch_size=self.batch_size, shuffle=True)
+    # Get batches for LSTM training
+    def get_lstm_batches(self, val_split, n=1):
+        # Calculate the number of samples to include in the validation set
+        val_size = int(val_split * (len(self) // 2))  # Half of sequences because we use every second image.
+        train_size = (len(self) // 2) - val_size
+
+        # Get indices for the odd (input) and even (target) frames.
+        odd_indices = list(range(0, len(self), 2))
+        even_indices = list(range(1, len(self), 2))
+
+        # Split the dataset indices into training and validation subsets
+        train_odd_indices = odd_indices[:train_size]
+        val_odd_indices = odd_indices[train_size:]
+
+        train_even_indices = even_indices[:train_size]
+        val_even_indices = even_indices[train_size:]
+
+        # Define a helper function to extract sequences by indices
+        def extract_sequences(indices):
+            return [self[i][0] for i in indices]  # Only return the grayscale images, not the tuples
+
+        # Use the helper function to create training and validation sets
+        train_input_seqs = torch.stack(extract_sequences(train_odd_indices))
+        train_target_seqs = torch.stack(extract_sequences(train_even_indices))
+
+        val_input_seqs = torch.stack(extract_sequences(val_odd_indices))
+        val_target_seqs = torch.stack(extract_sequences(val_even_indices))
+
+        # Create custom Dataset for the LSTM sequences
+        class LSTMDataset(Dataset):
+            def __init__(self, input_seqs, target_seqs):
+                self.input_seqs = input_seqs
+                self.target_seqs = target_seqs
+
+            def __len__(self):
+                return len(self.input_seqs)
+
+            def __getitem__(self, idx):
+                return self.input_seqs[idx], self.target_seqs[idx]
+
+        # Instantiate the custom Dataset objects
+        train_dataset = LSTMDataset(train_input_seqs, train_target_seqs)
+        val_dataset = LSTMDataset(val_input_seqs, val_target_seqs)
+
+        # Create DataLoaders for the LSTM datasets
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
+
+        # Return the training and validation DataLoaders
         return train_loader, val_loader
+
