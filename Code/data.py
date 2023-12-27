@@ -71,39 +71,30 @@ class CustomDataset(Dataset):
     # Get batches for LSTM training
     def get_lstm_batches(self, val_split, n=1):
         # Calculate the number of samples to include in the validation set
-        val_size = int(val_split * len(self))
-        train_size = len(self) - val_size
+        val_size = int(val_split * (len(self) // 2))  # Half of sequences because we use every second image.
+        train_size = (len(self) // 2) - val_size
 
-        # Split the dataset into training and validation sets
-        all_indices = list(range(len(self)))
-        train_indices = all_indices[:train_size]
-        val_indices = all_indices[train_size:]
+        # Get indices for the odd (input) and even (target) frames.
+        odd_indices = list(range(0, len(self), 2))
+        even_indices = list(range(1, len(self), 2))
 
-        # Function to generate input-target sequence pairs
-        def generate_sequences(indices):
-            input_sequences = []  # To store input sequences (odd-indexed frames)
-            target_sequences = []  # To store target sequences (full frame sequences)
+        # Split the dataset indices into training and validation subsets
+        train_odd_indices = odd_indices[:train_size]
+        val_odd_indices = odd_indices[train_size:]
 
-            for start_idx in range(0, len(indices) - 1, 2):  # Step by 2 to get odd-indexed frames
-                end_idx = start_idx + 2 * n + 1  # Calculate end index of the sequence
-                if end_idx > len(indices):
-                    break  # If the end index goes beyond the dataset size, stop adding sequences
-                
-                # Extract the input sequence (odd-indexed frames)
-                input_seq_indices = indices[start_idx:end_idx:2]  # Every second frame (odd)
-                input_seq = [self[i][0] for i in input_seq_indices]  # Select grayscale image only
-                input_sequences.append(torch.stack(input_seq))
-                
-                # Extract the target sequence (full frames, including intermediate frames)
-                target_seq_indices = indices[start_idx:end_idx]  # All frames in the range
-                target_seq = [self[i][0] for i in target_seq_indices]  # Select grayscale image only
-                target_sequences.append(torch.stack(target_seq))
+        train_even_indices = even_indices[:train_size]
+        val_even_indices = even_indices[train_size:]
 
-            return torch.stack(input_sequences), torch.stack(target_sequences)
+        # Define a helper function to extract sequences by indices
+        def extract_sequences(indices):
+            return [self[i] for i in indices]
 
-        # Generate training and validation sequences
-        train_input_seqs, train_target_seqs = generate_sequences(train_indices)
-        val_input_seqs, val_target_seqs = generate_sequences(val_indices)
+        # Use the helper function to create training and validation sets
+        train_input_seqs = torch.stack(extract_sequences(train_odd_indices))
+        train_target_seqs = torch.stack(extract_sequences(train_even_indices))
+
+        val_input_seqs = torch.stack(extract_sequences(val_odd_indices))
+        val_target_seqs = torch.stack(extract_sequences(val_even_indices))
 
         # Create custom Dataset for the LSTM sequences
         class LSTMDataset(Dataset):

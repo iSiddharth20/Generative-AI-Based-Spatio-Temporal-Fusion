@@ -5,14 +5,16 @@ Main Module
 
 # Importing Custom Modules
 from data import CustomDataset
-from lstm_model import FrameInterpolationLSTM
+from lstm_model import ConvLSTM
 from autoencoder_model import Grey2RGBAutoEncoder
 from losses import LossMSE, LossMEP, SSIMLoss
 from training import Trainer
 
+
 # Import Necessary Libraries
 import os
 import traceback
+import torch
 
 # Define Working Directories
 grayscale_dir = '../Dataset/Greyscale'
@@ -49,17 +51,16 @@ def main():
     print(model_autoencoder)
 
     # Initialize LSTM Model and Import Image Sequences (Training, Validation)
-    grey_sequence_train, grey_sequence_val = dataset.get_lstm_batches(val_split=0.2)
+    train_loader, val_loader = dataset.get_lstm_batches(val_split=0.2)
     print('LSTM Model Data Initialized.')
-    C = 1 
-    hidden_size = 64
-    num_layers = 3
-    n_interpolate_frames = 1 # Number of intermediate frames to interpolate
-    kernel_size = (3, 3)
-    model_lstm = FrameInterpolationLSTM(C, hidden_size, kernel_size, num_layers)
+    input_dim = 1  # Grayscale images have 1 input channel
+    hidden_dim = 64
+    kernel_size = 3
+    num_layers = 3  # Number of ConvLSTM layers in the model
+    lstm_model = ConvLSTM(input_dim, hidden_dim, kernel_size, num_layers)
     print('LSTM Model Initialized.')
     print('LSTM Model Summary:')
-    print(model_lstm)
+    print(lstm_model)
 
     '''
     Initialize Trainer Objects
@@ -70,7 +71,8 @@ def main():
     trainer_autoencoder_baseline = Trainer(model_autoencoder, loss_mse, model_save_path_ae)
     print('Baseline AutoEncoder Trainer Initialized.')
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
-    trainer_lstm_baseline = Trainer(model_lstm, loss_mse, model_save_path_lstm)
+    lstm_optimizer = torch.optim.Adam(lstm_model.parameters(), lr=0.001)
+    trainer_lstm_baseline = Trainer(lstm_model, loss_mse, lstm_optimizer, model_save_path_lstm)
     print('Baseline LSTM Trainer Initialized.')
 
     # Method 2 : Composite Loss (MSE + MaxEnt) for AutoEncoder and Mean Squared Error Loss for LSTM
@@ -84,7 +86,8 @@ def main():
     os.makedirs('../Models/Method3', exist_ok=True) # Creating Directory for Model Saving
     print('Method-3 AutoEncoder == Method-1 AutoEncoder')
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
-    trainer_lstm_m3 = Trainer(model_lstm, loss_ssim, model_save_path_lstm)
+    lstm_optimizer = torch.optim.Adam(lstm_model.parameters(), lr=0.001)
+    trainer_lstm_m3 = Trainer(lstm_model, loss_ssim, lstm_optimizer, model_save_path_lstm)
     print('Method-3 LSTM Trainer Initialized.')
 
     # Method 4 : Proposed Method : Composite Loss (MSE + MaxEnt) for AutoEncoder and SSIM Loss for LSTM
@@ -107,7 +110,7 @@ def main():
     try:
         epochs = 1
         print('M1 LSTM Training Start.')
-        model_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
+        model_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, train_loader, val_loader)
         print('M1 LSTM Training Complete.') 
     except Exception as e:
         print(f"M1 LSTM Training Error : \n{e}")
@@ -128,7 +131,7 @@ def main():
     try:
         epochs = 1
         print('M3 LSTM Training Start.')
-        model_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, n_interpolate_frames, grey_sequence_train, grey_sequence_val)
+        model_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, train_loader, val_loader)
         print('M3 LSTM Training Complete.') 
     except Exception as e:
         print(f"M3 LSTM Training Error : \n{e}")

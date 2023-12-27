@@ -58,60 +58,55 @@ class Trainer():
         # Return the Trained Model
         return self.model
 
-    def train_lstm(self, epochs, n_interpolate_frames, train_data, val_data):
-        min_val_loss = float('inf')  # Initialize the minimum validation loss to infinity
+    def train_lstm(self, epochs, train_loader, val_loader):
+        best_val_loss = float('inf')
         
         for epoch in range(epochs):
-            print(f'Epoch: {epoch}, Training')
-            self.model.train()  # Set the model to training mode
+            self.model.train()
             train_loss = 0.0
-            
-            # Training Loop
-            for sequences, targets in train_data:
-                print(f'Input sequence shape: {sequences.shape}, Target sequence shape: {targets.shape}')
-                self.optimizer.zero_grad()  # Reset the gradients accumulated from the previous iteration
-                sequences = sequences.to(self.device)
-                targets = targets.to(self.device)
-                outputs = self.model(sequences, n_interpolate_frames)
-                # sequences.requires_grad_()  # Ensure gradients are required for the input to ConvLSTM
-                # targets.requires_grad_(False)  # Ensure targets do not require gradients
-                # Assuming the outputs and targets are of shape [batch_size, seq_len, channels, height, width]
-                # Compute Training Loss only on the interpolated frames (not on the original frames)
-                loss = self.loss_function(outputs[:, 1:-1], targets[:, 1:-1])
-                print(f'Train loss: {loss.item()}')
-                loss.backward()  # Backward Pass
-                self.optimizer.step()  # Update Model Parameters
+
+            # Training loop
+            for input_seqs, target_seqs in train_loader:
+                input_seqs = input_seqs.to(self.device)
+                target_seqs = target_seqs.to(self.device)
+
+                # Perform forward pass
+                self.optimizer.zero_grad()
+                outputs = self.model(input_seqs)
+
+                # Compute loss; assuming that we are using an unsupervised learning approach for now
+                loss = self.loss_function(outputs, target_seqs)
                 train_loss += loss.item()
-            
-            train_loss /= len(train_data)
-            print(f'Epoch : {epoch}, Training Loss : {train_loss}')
 
-            # Validation Loss Calculation
-            self.model.eval()  # Set the Model to Evaluation Mode
+                # Backward pass and optimization
+                loss.backward()
+                self.optimizer.step()
+
+            # Average the loss over all batches and print
+            train_loss /= len(train_loader.dataset)
+            print(f'Epoch [{epoch+1}/{epochs}], Loss: {train_loss:.4f}')
+
+            # Validation loop
             val_loss = 0.0
-            
+            self.model.eval()
             with torch.no_grad():
-                for sequences, targets in val_data:
-                    print(f'Epoch: {epoch}, Validation')
-                    sequences = sequences.to(self.device)
-                    targets = targets.to(self.device)
-                    outputs = self.model(sequences, n_interpolate_frames)
-                    # Compute Validation Loss only on interpolated frames (not on the original frames)
-                    predicted_interpolated_frames = outputs[:, 1:-1].reshape(-1, *outputs.shape[2:])  # Reshape to (B * seq_len, C, H, W)
-                    true_interpolated_frames = targets[:, 1:-1].reshape(-1, *targets.shape[2:])  # Same reshaping for targets
-                    loss = self.loss_function(predicted_interpolated_frames, true_interpolated_frames)
-                    val_loss += loss.item()
-                
-                val_loss /= len(val_data)
-                print(f'Validation loss: {val_loss}')
-            
-            # Print the epoch number and the validation loss
-            print(f'Epoch : {epoch}, Validation Loss : {val_loss}')
+                for input_seqs, target_seqs in val_loader:
+                    input_seqs, target_seqs = input_seqs.to(self.device), target_seqs.to(self.device)
 
-            # If the current validation loss is lower than the best validation loss, save the model
-            if val_loss < min_val_loss:
-                min_val_loss = val_loss  # Update the best validation loss
-                self.save_model()  # Save the model
-                
-        # Return the Trained Model
+                    # Perform validation forward pass
+                    outputs = self.model(input_seqs)
+
+                    # Compute loss; assuming that we are using an unsupervised learning approach for now
+                    loss = self.loss_function(outputs, target_seqs)
+                    val_loss += loss.item()
+
+            val_loss /= len(val_loader.dataset)
+            print(f'Validation Loss: {val_loss:.4f}')
+
+            # Save model with best validation loss
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                self.save_model()
+                print('Best model saved with validation loss: {:.4f}'.format(val_loss))
+
         return self.model
