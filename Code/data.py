@@ -87,7 +87,7 @@ class CustomDataset(Dataset):
 
         # Define a helper function to extract sequences by indices
         def extract_sequences(indices):
-            return [self[i] for i in indices]
+            return [self[i][0] for i in indices]  # Only return the grayscale images, not the tuples
 
         # Use the helper function to create training and validation sets
         train_input_seqs = torch.stack(extract_sequences(train_odd_indices))
