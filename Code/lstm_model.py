@@ -61,7 +61,7 @@ class ConvLSTM(nn.Module):
         self.conv_lstm_layers = nn.ModuleList(layers)
 
     def forward(self, input_tensor):
-        h, c = self.init_hidden(input_tensor.size(0), (input_tensor.size(3), input_tensor.size(4)))
+        h, c = self.init_hidden(input_tensor.size(0), (-2, -1))  # Get the last two dimensions
 
         internal_state = []
         outputs = []
