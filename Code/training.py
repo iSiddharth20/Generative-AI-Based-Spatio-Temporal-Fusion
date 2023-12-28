@@ -14,7 +14,6 @@ import torch
 # Define Training Class
 class Trainer():
     def __init__(self, model, loss_function, optimizer=None, model_save_path=None):
-        print('Executing __init__ of Trainer Class from training.py')
         # Define the device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # Define the model and move it to the device
@@ -27,7 +26,6 @@ class Trainer():
         self.model_save_path = model_save_path
 
     def save_model(self):
-        print('Executing save_model of Trainer Class from training.py')
         # Save the model
         torch.save(self.model.state_dict(), self.model_save_path)
 
@@ -65,11 +63,8 @@ class Trainer():
             # Training loop
             for input_sequence, target_sequence in train_loader:
                 input_sequence, target_sequence = input_sequence.to(self.device), target_sequence.to(self.device)
-                print(f'Input Sequence shape (before forward pass): {input_sequence.shape}')
-                print(f'Target Sequence shape (before forward pass): {target_sequence.shape}')
                 self.optimizer.zero_grad()  # Zero gradients
                 output_sequence, _ = self.model(input_sequence)  # Forward pass, ignore the second output (hidden state tuple)
-                print(f'Output Sequence shape (after forward pass): {output_sequence.shape}')
                 loss = self.loss_function(output_sequence, target_sequence)  # Compute loss
                 loss.backward()  # Backward pass
                 self.optimizer.step()  # Update parameters
