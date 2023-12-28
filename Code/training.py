@@ -14,6 +14,7 @@ import torch
 # Define Training Class
 class Trainer():
     def __init__(self, model, loss_function, optimizer=None, model_save_path=None):
+        print('Executing __init__ of Trainer Class from training.py')
         # Define the device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         # Define the model and move it to the device
@@ -26,10 +27,12 @@ class Trainer():
         self.model_save_path = model_save_path
 
     def save_model(self):
+        print('Executing save_model of Trainer Class from training.py')
         # Save the model
         torch.save(self.model.state_dict(), self.model_save_path)
 
     def train_autoencoder(self, epochs, train_loader, val_loader):
+        print('Executing train_autoencoder of Trainer Class from training.py')
         best_val_loss = float('inf')  
         for epoch in range(epochs):
             self.model.train()  # Set the Model to Training Mode
@@ -39,7 +42,7 @@ class Trainer():
                 print(f'Input shape: {input.shape}, Target shape: {target.shape}')
                 output = self.model(input)  # Forward Pass
                 loss = self.loss_function(output, target)  # Compute Training Loss
-                print(f'Epoch: {epoch}, Training loss: {loss.item()}')
+                print(f'Training loss after epoch {epoch}: {loss.item()}')
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
                 loss.backward()  # Backward Pass
                 self.optimizer.step()  # Update Model Parameters
@@ -58,55 +61,32 @@ class Trainer():
         # Return the Trained Model
         return self.model
 
-    def train_lstm(self, epochs, train_loader, val_loader):
-        best_val_loss = float('inf')
-        
+    def train_lstm(self, epochs, train_loader_odd, train_loader_even, val_loader_odd, val_loader_even):
+        print('Executing train_lstm of Trainer Class from training.py')
+        best_val_loss = float('inf')  
         for epoch in range(epochs):
-            self.model.train()
-            train_loss = 0.0
-
-            # Training loop
-            for input_seqs, target_seqs in train_loader:
-                input_seqs = input_seqs.to(self.device)
-                target_seqs = target_seqs.to(self.device)
-
-                # Perform forward pass
-                self.optimizer.zero_grad()
-                outputs = self.model(input_seqs)
-
-                # Compute loss; assuming that we are using an unsupervised learning approach for now
-                loss = self.loss_function(outputs, target_seqs)
-                train_loss += loss.item()
-
-                # Backward pass and optimization
-                loss.backward()
-                self.optimizer.step()
-
-            # Average the loss over all batches and print
-            train_loss /= len(train_loader.dataset)
-            print(f'Epoch [{epoch+1}/{epochs}], Loss: {train_loss:.4f}')
-
-            # Validation loop
-            val_loss = 0.0
-            self.model.eval()
-            with torch.no_grad():
-                for input_seqs, target_seqs in val_loader:
-                    input_seqs, target_seqs = input_seqs.to(self.device), target_seqs.to(self.device)
-
-                    # Perform validation forward pass
-                    outputs = self.model(input_seqs)
-
-                    # Compute loss; assuming that we are using an unsupervised learning approach for now
-                    loss = self.loss_function(outputs, target_seqs)
-                    val_loss += loss.item()
-
-            val_loss /= len(val_loader.dataset)
-            print(f'Validation Loss: {val_loss:.4f}')
-
-            # Save model with best validation loss
+            self.model.train()  # Set the Model to Training Mode
+            # Training Loop
+            for (input_odd, _), (input_even, target_even) in zip(train_loader_odd, train_loader_even):
+                input_odd, target_even = input_odd.to(self.device), target_even.to(self.device)
+                print(f'Input shape: {input_odd.shape}, Target shape: {target_even.shape}')
+                output = self.model(input_odd)  # Forward Pass
+                loss = self.loss_function(output, target_even)  # Compute Training Loss
+                print(f'Training loss after epoch {epoch}: {loss.item()}')
+                self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
+                loss.backward()  # Backward Pass
+                self.optimizer.step()  # Update Model Parameters
+            # Validation Loss Calculation
+            self.model.eval()  # Set the Model to Evaluation Mode
+            with torch.no_grad():  # Disable gradient computation
+                val_loss = 0.0
+                val_loss = sum(self.loss_function(self.model(input_odd.to(self.device)), target_even.to(self.device)).item() for (input_odd, _), (input_even, target_even) in zip(val_loader_odd, val_loader_even))  # Compute Total Validation Loss
+                val_loss /= len(val_loader_odd)  # Compute Average Validation Loss
+            # Print the epoch number and the validation loss
+            print(f'Epoch : {epoch}, Validation Loss : {val_loss}')
+            # If the current validation loss is lower than the best validation loss, save the model
             if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                self.save_model()
-                print('Best model saved with validation loss: {:.4f}'.format(val_loss))
-
+                best_val_loss = val_loss  # Update the best validation loss
+                self.save_model()  # Save the model
+        # Return the Trained Model
         return self.model

@@ -21,13 +21,14 @@ class LossMEP(nn.Module):
         self.alpha = alpha  # Weighting factor for the loss
 
     def forward(self, output, target):
-        mse_loss = F.mse_loss(output, target)  # Compute MSE Loss using functional API
-        # Normalize the output tensor along the last dimension to represent probabilities
-        output_normalized = torch.softmax(output, dim=-1)
-        # Compute Entropy
-        entropy = -torch.sum(target * torch.log(output_normalized + 1e-8), dim=-1).mean()
-        # Compute Composite Loss
-        composite_loss = self.alpha * mse_loss + (1 - self.alpha) * entropy
+        mse_loss = F.mse_loss(output, target)
+        # Assume output to be raw logits: calculate log_probs and use it to compute entropy
+        log_probs = F.log_softmax(output, dim=1)  # dim 1 is the channel dimension
+        probs = torch.exp(log_probs)
+        entropy_loss = -torch.sum(probs * log_probs, dim=1).mean()
+        
+        # Combine MSE with entropy loss scaled by alpha factor
+        composite_loss = (1 - self.alpha) * mse_loss + self.alpha * entropy_loss
         return composite_loss
 
 '''
@@ -36,6 +37,7 @@ Class for Mean Squared Error (MSE) Loss
 '''
 class LossMSE(nn.Module):
     def forward(self, output, target):
+        print('Executing forward of LossMSE Class from losses.py')
         likelihood_loss = F.mse_loss(output, target)  # Compute MSE loss using functional API
         return likelihood_loss
 
@@ -51,5 +53,6 @@ class SSIMLoss(nn.Module):
         self.ssim_module = SSIM(data_range=data_range, size_average=size_average)
 
     def forward(self, img1, img2):
+        print('Executing forward of SSIMLoss Class from losses.py')
         ssim_value = self.ssim_module(img1, img2)  # Compute SSIM
         return 1 - ssim_value  # Return loss

@@ -28,6 +28,7 @@ class Grey2RGBAutoEncoder(nn.Module):
 
     # Helper function to create the encoder or decoder layers.
     def _make_layers(self, channels, decoder=False):
+        print('Executing _make_layers from autoencoder_model.py')
         layers = []
         for i in range(len(channels) - 1):
             '''
@@ -42,11 +43,12 @@ class Grey2RGBAutoEncoder(nn.Module):
                 layers += [nn.Conv2d(channels[i], channels[i+1], kernel_size=3, stride=1, padding=1),
                            nn.ReLU(inplace=True)]
         if decoder:
-            layers[-1] = nn.Sigmoid()  # Replace last ReLU with Sigmoid for decoder
+            layers[-1] = nn.Sigmoid() 
         return nn.Sequential(*layers)
 
     # The forward pass takes an input image, passes it through the encoder and decoder, and returns the output image
     def forward(self, x):
+        print('Executing forward from autoencoder_model.py')
         x = self.encoder(x)
         x = self.decoder(x)
         return x

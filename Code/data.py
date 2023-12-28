@@ -10,7 +10,6 @@ from PIL import ImageFile
 from pathlib import Path
 from torch.utils.data import DataLoader, Dataset, random_split
 import torchvision.transforms as transforms
-import torch
 
 # Allow loading of truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -33,10 +32,12 @@ class CustomDataset(Dataset):
 
     # Return the total number of images
     def __len__(self):
+        print('Executing __len__ of CustomDataset Class from data.py')
         return len(self.filenames)
 
     # Get a single item or a slice from the dataset
     def __getitem__(self, idx):
+        print('Executing __getitem__ of CustomDataset Class from data.py')
         if isinstance(idx, slice):
             return [self[i] for i in range(*idx.indices(len(self)))]
         # Get paths for grayscale and RGB images
@@ -49,15 +50,18 @@ class CustomDataset(Dataset):
         grayscale_img = self.transform(grayscale_img)
         rgb_img = self.transform(rgb_img)
         # Return transformed images
+        print(f'Loaded grayscale image: {grayscale_img.size()}, RGB image: {rgb_img.size()}')
         return grayscale_img, rgb_img
 
     # Get batches for autoencoder training
     def get_autoencoder_batches(self, val_split):
+        print('Executing get_autoencoder_batches of CustomDataset Class from data.py')
         # Calculate the number of samples to include in the validation set
         val_size = int(val_split * len(self))
         train_size = len(self) - val_size
         # Split the dataset into training and validation sets
         train_dataset, val_dataset = random_split(self, [train_size, val_size])
+        print(f'Autoencoder: Number of training samples: {len(train_dataset)}, Number of validation samples: {len(val_dataset)}')
         # Create dataloaders for the training and validation sets
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
         print("Sample from autoencoder training data:")
@@ -69,53 +73,29 @@ class CustomDataset(Dataset):
         return train_loader, val_loader
 
     # Get batches for LSTM training
-    def get_lstm_batches(self, val_split, n=1):
+    def get_lstm_batches(self, val_split):
+        print('Executing get_lstm_batches of CustomDataset Class from data.py')
         # Calculate the number of samples to include in the validation set
-        val_size = int(val_split * (len(self) // 2))  # Half of sequences because we use every second image.
-        train_size = (len(self) // 2) - val_size
-
-        # Get indices for the odd (input) and even (target) frames.
-        odd_indices = list(range(0, len(self), 2))
-        even_indices = list(range(1, len(self), 2))
-
-        # Split the dataset indices into training and validation subsets
-        train_odd_indices = odd_indices[:train_size]
-        val_odd_indices = odd_indices[train_size:]
-
-        train_even_indices = even_indices[:train_size]
-        val_even_indices = even_indices[train_size:]
-
-        # Define a helper function to extract sequences by indices
-        def extract_sequences(indices):
-            return [self[i][0] for i in indices]  # Only return the grayscale images, not the tuples
-
-        # Use the helper function to create training and validation sets
-        train_input_seqs = torch.stack(extract_sequences(train_odd_indices))
-        train_target_seqs = torch.stack(extract_sequences(train_even_indices))
-
-        val_input_seqs = torch.stack(extract_sequences(val_odd_indices))
-        val_target_seqs = torch.stack(extract_sequences(val_even_indices))
-
-        # Create custom Dataset for the LSTM sequences
-        class LSTMDataset(Dataset):
-            def __init__(self, input_seqs, target_seqs):
-                self.input_seqs = input_seqs
-                self.target_seqs = target_seqs
-
-            def __len__(self):
-                return len(self.input_seqs)
-
-            def __getitem__(self, idx):
-                return self.input_seqs[idx], self.target_seqs[idx]
-
-        # Instantiate the custom Dataset objects
-        train_dataset = LSTMDataset(train_input_seqs, train_target_seqs)
-        val_dataset = LSTMDataset(val_input_seqs, val_target_seqs)
-
-        # Create DataLoaders for the LSTM datasets
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
-
-        # Return the training and validation DataLoaders
-        return train_loader, val_loader
-
+        val_size = int(val_split * len(self))
+        train_size = len(self) - val_size
+        # Split the dataset into training and validation sets sequentially
+        train_dataset = self[:train_size]
+        val_dataset = self[train_size:]
+        print(f'LSTM: Number of training samples: {len(train_dataset)}, Number of validation samples: {len(val_dataset)}')
+        # Create dataloaders for the training and validation sets without shuffling
+        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=False)
+        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
+        # Print the shapes of the training and validation sets
+        print(f'Training set shape: {next(iter(train_loader))[0].shape}')
+        print(f'Validation set shape: {next(iter(val_loader))[0].shape}')
+        # Separate the odd-indexed and even-indexed images in the training and validation sets
+        train_loader_odd = [img for i, img in enumerate(train_loader) if i % 2 != 0]
+        train_loader_even = [img for i, img in enumerate(train_loader) if i % 2 == 0]
+        val_loader_odd = [img for i, img in enumerate(val_loader) if i % 2 != 0]
+        val_loader_even = [img for i, img in enumerate(val_loader) if i % 2 == 0]
+        print(f'train_loader_odd shape: {next(iter(train_loader_odd))[0].shape}')
+        print(f'train_loader_even shape: {next(iter(train_loader_even))[0].shape}')
+        print(f'val_loader_odd shape: {next(iter(val_loader_odd))[0].shape}')
+        print(f'val_loader_even shape: {next(iter(val_loader_even))[0].shape}')
+        # Return the training and validation dataloaders for odd-indexed and even-indexed images
+        return (train_loader_odd, train_loader_even) , (val_loader_odd, val_loader_even)
