@@ -37,7 +37,6 @@ Class for Mean Squared Error (MSE) Loss
 '''
 class LossMSE(nn.Module):
     def forward(self, output, target):
-        print('Executing forward of LossMSE Class from losses.py')
         likelihood_loss = F.mse_loss(output, target)  # Compute MSE loss using functional API
         return likelihood_loss
 
@@ -53,6 +52,5 @@ class SSIMLoss(nn.Module):
         self.ssim_module = SSIM(data_range=data_range, size_average=size_average)
 
     def forward(self, img1, img2):
-        print('Executing forward of SSIMLoss Class from losses.py')
         ssim_value = self.ssim_module(img1, img2)  # Compute SSIM
         return 1 - ssim_value  # Return loss
