@@ -27,7 +27,6 @@ batch_size = 2
 
 
 def main():
-    print('Executing main from main.py')
     # Initialize Dataset Object (PyTorch Tensors)
     try:
         dataset = CustomDataset(grayscale_dir, rgb_dir, (image_height, image_width), batch_size)
@@ -39,7 +38,7 @@ def main():
     try:
         loss_mse = LossMSE() # Mean Squared Error Loss
         loss_mep = LossMEP(alpha=0.4) # Maximum Entropy Loss
-        loss_ssim = SSIMLoss(data_range=1, size_average=True) # Structural Similarity Index Measure Loss
+        loss_ssim = SSIMLoss() # Structural Similarity Index Measure Loss
         print('Importing Loss Functions Complete.')
     except Exception as e:
         print(f"Importing Loss Functions In-Complete : \n{e}")
@@ -49,17 +48,12 @@ def main():
     print('AutoEncoder Model Data Initialized.')
     model_autoencoder = Grey2RGBAutoEncoder()
     print('AutoEncoder Model Initialized.')
-    # print('AutoEncoder Model Summary:')
-    # print(model_autoencoder)
 
     # Initialize LSTM Model and Import Dataloader (Training, Validation)
-    print('LSTM Model Data Initialization Started.')
     data_lstm_train, data_lstm_val = dataset.get_lstm_batches(val_split=0.25, sequence_length=2)
     print('LSTM Model Data Initialized.')
     model_lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(3, 3), num_layers=3, alpha=0.5)
     print('LSTM Model Initialized.')
-    print('LSTM Model Summary:')
-    print(model_lstm)
 
 
     '''
@@ -79,18 +73,18 @@ def main():
     model_save_path_ae = '../Models/Method2/model_autoencoder_m2.pth'
     trainer_autoencoder_m2 = Trainer(model=model_autoencoder, loss_function=loss_mep, optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), model_save_path=model_save_path_ae)
     print('Method-2 AutoEncoder Trainer Initialized.')
-    # print('Method-2 LSTM == Method-1 LSTM')
+    print('Method-2 LSTM == Method-1 LSTM')
 
     # Method 3 : Mean Squared Error Loss for AutoEncoder and SSIM Loss for LSTM
     os.makedirs('../Models/Method3', exist_ok=True) # Creating Directory for Model Saving
     print('Method-3 AutoEncoder == Method-1 AutoEncoder')
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
     trainer_lstm_m3 = Trainer(model_lstm, loss_ssim, optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), model_save_path=model_save_path_lstm)
-    # print('Method-3 LSTM Trainer Initialized.')
+    print('Method-3 LSTM Trainer Initialized.')
 
     # Method 4 : Proposed Method : Composite Loss (MSE + MaxEnt) for AutoEncoder and SSIM Loss for LSTM
-    # print('Method-4 AutoEncoder == Method-2 AutoEncoder')
-    # print('Method-4 LSTM == Method-3 LSTM')
+    print('Method-4 AutoEncoder == Method-2 AutoEncoder')
+    print('Method-4 LSTM == Method-3 LSTM')
 
 
     '''
@@ -106,6 +100,7 @@ def main():
         print(f"M1 AutoEncoder Training Error : \n{e}")
         traceback.print_exc()
     try:
+        epochs = 1
         print('M1 LSTM Training Start.')
         model_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
         print('M1 LSTM Training Complete.')
@@ -126,6 +121,7 @@ def main():
 
     # Method-3
     try:
+        epochs = 1
         print('M3 LSTM Training Start.')
         model_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
         print('M3 LSTM Training Complete.')
