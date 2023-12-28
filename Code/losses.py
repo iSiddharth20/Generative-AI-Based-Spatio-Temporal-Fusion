@@ -46,11 +46,18 @@ Class for Structural Similarity Index Measure (SSIM) Loss
     - In PyTorch, loss is minimized, by doing 1 - SSIM, minimizing the loss function will lead to maximization of SSIM
 '''
 class SSIMLoss(nn.Module):
-    def __init__(self, data_range=1, size_average=True):
-        super(SSIMLoss, self).__init__()
-        # Initialize SSIM module
-        self.ssim_module = SSIM(data_range=data_range, size_average=size_average)
+    def __init__(self):
+        super().__init__()
+        self.ssim_module = SSIM(data_range=1, size_average=True, channel=1)
 
-    def forward(self, img1, img2):
-        ssim_value = self.ssim_module(img1, img2)  # Compute SSIM
-        return 1 - ssim_value  # Return loss
+    def forward(self, seq1, seq2):
+        N, T = seq1.shape[:2]
+        ssim_values = []
+        for i in range(N):
+           for t in range(T):
+            seq1_slice = seq1[i, t:t+1, ...] 
+            seq2_slice = seq2[i, t:t+1, ...]
+            ssim_val = self.ssim_module(seq1_slice, seq2_slice)
+            ssim_values.append(ssim_val) # Compute SSIM for each frame in the sequence
+        avg_ssim = torch.stack(ssim_values).mean() # Average SSIM across all frames
+        return 1 - avg_ssim
