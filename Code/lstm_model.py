@@ -10,7 +10,6 @@ from torch.nn import functional as F
 
 class ConvLSTMCell(nn.Module):     
     def __init__(self, input_dim, hidden_dim, kernel_size, num_features):
-        print('Executing __init__ of ConvLSTMCell Class from lstm_model.py')
         super(ConvLSTMCell, self).__init__()
         self.hidden_dim = hidden_dim
         padding = kernel_size[0] // 2, kernel_size[1] // 2
@@ -20,7 +19,6 @@ class ConvLSTMCell(nn.Module):
                               padding=padding)
 
     def forward(self, input_tensor, cur_state):
-        print('Executing forward of ConvLSTMCell Class from lstm_model.py')
         h_cur, c_cur = cur_state
         combined = torch.cat([input_tensor, h_cur], dim=1)
         print(f'ConvLSTMCell combined input shape (before conv): {combined.shape}')
@@ -38,7 +36,6 @@ class ConvLSTMCell(nn.Module):
 
 class ConvLSTM(nn.Module):
     def __init__(self, input_dim, hidden_dims, kernel_size, num_layers, alpha=0.5):
-        print('Executing __init__ of ConvLSTM Class from lstm_model.py')
         super(ConvLSTM, self).__init__()
         self.num_layers = num_layers
         self.alpha = alpha
@@ -53,7 +50,6 @@ class ConvLSTM(nn.Module):
                                            num_features=4))  # LSTM has 4 gates (features)
 
     def init_hidden(self, batch_size, image_height, image_width):
-        print('Executing init_hidden of ConvLSTM Class from lstm_model.py')
         init_states = []
         for i in range(self.num_layers):
             # Note the change from self.hidden_dim to self.hidden_dims
@@ -62,7 +58,6 @@ class ConvLSTM(nn.Module):
         return init_states
     
     def forward(self, input_tensor, cur_state=None):
-        print('Executing forward of ConvLSTM Class from lstm_model.py')
         print(f"Overall Input Tensor Shape: {input_tensor.shape}")
         b, seq_len, _, h, w = input_tensor.size()
 

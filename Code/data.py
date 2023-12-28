@@ -66,14 +66,11 @@ class CustomDataset(Dataset):
 
     # Transform a sequence of images to tensors (Functionality for LSTM)
     def transform_sequence(self, filenames):
-        print('Executing transform_sequence of CustomDataset Class from data.py')
         images = [self.transform(Image.open(f)) for f in filenames]
-        print(f"Transformed sequence shape: {torch.stack(images).shape}")
         return torch.stack(images) # Stack to form a sequence tensor
     
     # Get batches for LSTM training
     def get_lstm_batches(self, val_split, sequence_length, sequence_stride=2):
-        print('Executing get_lstm_batches of CustomDataset Class from data.py')
         assert sequence_length % 2 == 0, "The sequence length must be even."
         
         # Compute the total number of sequences that can be formed, given the stride and length
@@ -93,21 +90,9 @@ class CustomDataset(Dataset):
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=False)
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
 
-        print("Sample from lstm training data:")
-        for input_seq, target_seq in train_loader:
-            print(f"Sample input shape in train_loader: {input_seq.shape}")
-            print(f"Sample target shape in train_loader: {target_seq.shape}")
-            break
-        print("Sample from lstm validation data:")
-        for input_seq, target_seq in val_loader:
-            print(f"Sample input shape in val_loader: {input_seq.shape}")
-            print(f"Sample target shape in val_loader: {target_seq.shape}")
-            break
-
         return train_loader, val_loader
 
     def create_sequence_pairs(self, indices, sequence_length):
-        print('Executing create_sequence_pairs of CustomDataset Class from data.py')
         sequence_pairs = []
         for start in indices:
             end = start + sequence_length
