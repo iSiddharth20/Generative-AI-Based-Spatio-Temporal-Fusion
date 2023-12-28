@@ -3,26 +3,27 @@ Module for LSTM
 Generate Intermediate Images and Return the Complete Image Sequence with Interpolated Images
 --------------------------------------------------------------------------------
 '''
+# Import Necessary Libraries
 import torch
 from torch import nn
+from torch.nn import functional as F
 
-class ConvLSTMCell(nn.Module):
-    def __init__(self, input_dim, hidden_dim, kernel_size):
+class ConvLSTMCell(nn.Module):     
+    def __init__(self, input_dim, hidden_dim, kernel_size, num_features):
+        print('Executing __init__ of ConvLSTMCell Class from lstm_model.py')
         super(ConvLSTMCell, self).__init__()
-
-        self.input_dim = input_dim
         self.hidden_dim = hidden_dim
-        self.kernel_size = kernel_size
-
-        self.padding = kernel_size[0] // 2, kernel_size[1] // 2
-        self.conv = nn.Conv2d(in_channels=self.input_dim + self.hidden_dim,
-                              out_channels=4 * self.hidden_dim,
-                              kernel_size=self.kernel_size,
-                              padding=self.padding)
+        padding = kernel_size[0] // 2, kernel_size[1] // 2
+        self.conv = nn.Conv2d(in_channels=input_dim + hidden_dim,
+                              out_channels=num_features * hidden_dim,
+                              kernel_size=kernel_size,
+                              padding=padding)
 
     def forward(self, input_tensor, cur_state):
+        print('Executing forward of ConvLSTMCell Class from lstm_model.py')
         h_cur, c_cur = cur_state
         combined = torch.cat([input_tensor, h_cur], dim=1)
+        print(f'ConvLSTMCell combined input shape (before conv): {combined.shape}')
         combined_conv = self.conv(combined)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
         i = torch.sigmoid(cc_i)
@@ -36,68 +37,69 @@ class ConvLSTMCell(nn.Module):
         return h_next, c_next
 
 class ConvLSTM(nn.Module):
-    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers):
+    def __init__(self, input_dim, hidden_dims, kernel_size, num_layers, alpha=0.5):
+        print('Executing __init__ of ConvLSTM Class from lstm_model.py')
         super(ConvLSTM, self).__init__()
-
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-        self.kernel_size = kernel_size
         self.num_layers = num_layers
+        self.alpha = alpha
+        self.hidden_dims = hidden_dims
+        self.cells = nn.ModuleList()
 
-        cell_list = []
-        for i in range(0, self.num_layers):
-            cur_input_dim = self.input_dim if i == 0 else self.hidden_dim[i - 1]
-            cur_hidden_dim = self.hidden_dim[i]
+        for i in range(num_layers):
+            cur_input_dim = input_dim if i == 0 else hidden_dims[i - 1]
+            self.cells.append(ConvLSTMCell(input_dim=cur_input_dim,
+                                           hidden_dim=hidden_dims[i],
+                                           kernel_size=kernel_size,
+                                           num_features=4))  # LSTM has 4 gates (features)
 
-            cell_list.append(ConvLSTMCell(input_dim=cur_input_dim,
-                                          hidden_dim=cur_hidden_dim,
-                                          kernel_size=self.kernel_size))
-
-        self.cell_list = nn.ModuleList(cell_list)
-    def forward(self, input_tensor, cur_state=None, n=1):
+    def init_hidden(self, batch_size, image_height, image_width):
+        print('Executing init_hidden of ConvLSTM Class from lstm_model.py')
+        init_states = []
+        for i in range(self.num_layers):
+            # Note the change from self.hidden_dim to self.hidden_dims
+            init_states.append([torch.zeros(batch_size, self.hidden_dims[i], image_height, image_width, device=self.cells[i].conv.weight.device),
+                                torch.zeros(batch_size, self.hidden_dims[i], image_height, image_width, device=self.cells[i].conv.weight.device)])
+        return init_states
+    
+    def forward(self, input_tensor, cur_state=None):
+        print('Executing forward of ConvLSTM Class from lstm_model.py')
+        print(f"Overall Input Tensor Shape: {input_tensor.shape}")
         b, seq_len, _, h, w = input_tensor.size()
 
         if cur_state is None:
             cur_state = self.init_hidden(b, h, w)
+            for h, c in cur_state:
+                print(f"Hidden State h Shape: {h.shape}")
+                print(f"Hidden State c Shape: {c.shape}")
 
-        layer_output_list = []
-        last_state_list   = []
+        output_sequence = []
+        last_state_list = []
 
-        for t in range(seq_len - 1):
-            x = input_tensor[:, t, :, :, :]
-            cur_layer_input = x
+        for layer_idx, cell in enumerate(self.cells):
+            h, c = cur_state[layer_idx]
+            internal_output_sequence = []
+            for t in range(seq_len - 1):
+                print(f"Input tensor shape before LSTM cell: {input_tensor[:, t, :, :, :].shape}")
+                h, c = cell(input_tensor=input_tensor[:, t, :, :, :], cur_state=[h, c])
+                print(f"Output tensor shape after LSTM cell: {h.shape}")
+                internal_output_sequence.append(h)
 
-            for i in range(self.num_layers):
-                h, c = cur_state[i]
-                h, c = self.cell_list[i](input_tensor=cur_layer_input, cur_state=[h, c])
-                cur_layer_input = h
+                # Interpolation (alpha-blending) between frames for intermediate frame generation
+                if t != seq_len - 2:
+                    next_input = (1 - self.alpha) * input_tensor[:, t, :, :, :] + self.alpha * input_tensor[:, t + 1, :, :, :]
+                    print(f'Alpha-blending input shape (before LSTM cell): {next_input.shape}')
+                    h, c = cell(input_tensor=next_input, cur_state=[h, c])
+                    print(f'Next hidden state shape (h): {h.shape}')
+                    print(f'Next cell state shape (c): {c.shape}')
+                    internal_output_sequence.append(h)
 
-                if t == seq_len - 2:
-                    last_state_list.append([h, c])
+            cur_state[layer_idx] = (h, c)
+            output_sequence.append(internal_output_sequence[-1])
 
-            layer_output_list.append(cur_layer_input)
+            # Concatenate the output from each time step to form a sequence
+            output_sequence[layer_idx] = torch.stack(internal_output_sequence, dim=1)
 
-            # Generate n intermediate frames
-            for j in range(1, n + 1):
-                alpha = j / float(n + 1)
-                x = (1 - alpha) * input_tensor[:, t, :, :, :] + alpha * input_tensor[:, t + 1, :, :, :]
-                cur_layer_input = x
+        # We take the output from the last layer as the predicted output
+        predicted_sequence = output_sequence[-1]
 
-                for i in range(self.num_layers):
-                    h, c = cur_state[i]
-                    h, c = self.cell_list[i](input_tensor=cur_layer_input, cur_state=[h, c])
-                    cur_layer_input = h
-
-                    if t == seq_len - 2 and j == n:
-                        last_state_list.append([h, c])
-
-                layer_output_list.append(cur_layer_input)
-
-        return layer_output_list, last_state_list
-
-    def init_hidden(self, b, h, w):
-        init_states = []
-        for i in range(self.num_layers):
-            init_states.append([torch.zeros(b, self.hidden_dim, h, w).to(self.cell_list[i].conv.weight.device),
-                                torch.zeros(b, self.hidden_dim, h, w).to(self.cell_list[i].conv.weight.device)])
-        return init_states
+        return predicted_sequence, cur_state

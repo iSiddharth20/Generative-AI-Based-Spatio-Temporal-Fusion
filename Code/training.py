@@ -57,9 +57,8 @@ class Trainer():
                 self.save_model()  # Save the model
         # Return the Trained Model
         return self.model
-
+    
     def train_lstm(self, epochs, train_loader, val_loader):
-        print('Executing train_lstm of Trainer Class from training.py')
         best_val_loss = float('inf')
         for epoch in range(epochs):
             self.model.train()  # Set the model to training mode
@@ -69,7 +68,7 @@ class Trainer():
                 print(f'Input Sequence shape (before forward pass): {input_sequence.shape}')
                 print(f'Target Sequence shape (before forward pass): {target_sequence.shape}')
                 self.optimizer.zero_grad()  # Zero gradients
-                output_sequence = self.model(input_sequence)  # Forward pass
+                output_sequence, _ = self.model(input_sequence)  # Forward pass, ignore the second output (hidden state tuple)
                 print(f'Output Sequence shape (after forward pass): {output_sequence.shape}')
                 loss = self.loss_function(output_sequence, target_sequence)  # Compute loss
                 loss.backward()  # Backward pass
@@ -80,7 +79,7 @@ class Trainer():
                 val_loss = 0.0
                 for input_sequence, target_sequence in val_loader:
                     input_sequence, target_sequence = input_sequence.to(self.device), target_sequence.to(self.device)
-                    output_sequence = self.model(input_sequence)  # Forward pass
+                    output_sequence, _ = self.model(input_sequence)  # Forward pass, ignore the second output
                     val_loss += self.loss_function(output_sequence, target_sequence).item()  # Accumulate loss
                 val_loss /= len(val_loader)  # Average validation loss
             # Print epochs and losses
