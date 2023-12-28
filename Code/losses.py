@@ -21,13 +21,14 @@ class LossMEP(nn.Module):
         self.alpha = alpha  # Weighting factor for the loss
 
     def forward(self, output, target):
-        mse_loss = F.mse_loss(output, target)  # Compute MSE Loss using functional API
-        # Normalize the output tensor along the last dimension to represent probabilities
-        output_normalized = torch.softmax(output, dim=-1)
-        # Compute Entropy
-        entropy = -torch.sum(target * torch.log(output_normalized + 1e-8), dim=-1).mean()
-        # Compute Composite Loss
-        composite_loss = self.alpha * mse_loss + (1 - self.alpha) * entropy
+        mse_loss = F.mse_loss(output, target)
+        # Assume output to be raw logits: calculate log_probs and use it to compute entropy
+        log_probs = F.log_softmax(output, dim=1)  # dim 1 is the channel dimension
+        probs = torch.exp(log_probs)
+        entropy_loss = -torch.sum(probs * log_probs, dim=1).mean()
+        
+        # Combine MSE with entropy loss scaled by alpha factor
+        composite_loss = (1 - self.alpha) * mse_loss + self.alpha * entropy_loss
         return composite_loss
 
 '''
@@ -45,11 +46,18 @@ Class for Structural Similarity Index Measure (SSIM) Loss
     - In PyTorch, loss is minimized, by doing 1 - SSIM, minimizing the loss function will lead to maximization of SSIM
 '''
 class SSIMLoss(nn.Module):
-    def __init__(self, data_range=1, size_average=True):
-        super(SSIMLoss, self).__init__()
-        # Initialize SSIM module
-        self.ssim_module = SSIM(data_range=data_range, size_average=size_average)
+    def __init__(self):
+        super().__init__()
+        self.ssim_module = SSIM(data_range=1, size_average=True, channel=1)
 
-    def forward(self, img1, img2):
-        ssim_value = self.ssim_module(img1, img2)  # Compute SSIM
-        return 1 - ssim_value  # Return loss
+    def forward(self, seq1, seq2):
+        N, T = seq1.shape[:2]
+        ssim_values = []
+        for i in range(N):
+           for t in range(T):
+            seq1_slice = seq1[i, t:t+1, ...] 
+            seq2_slice = seq2[i, t:t+1, ...]
+            ssim_val = self.ssim_module(seq1_slice, seq2_slice)
+            ssim_values.append(ssim_val) # Compute SSIM for each frame in the sequence
+        avg_ssim = torch.stack(ssim_values).mean() # Average SSIM across all frames
+        return 1 - avg_ssim

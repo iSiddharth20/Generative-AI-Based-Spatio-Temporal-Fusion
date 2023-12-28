@@ -42,7 +42,7 @@ class Grey2RGBAutoEncoder(nn.Module):
                 layers += [nn.Conv2d(channels[i], channels[i+1], kernel_size=3, stride=1, padding=1),
                            nn.ReLU(inplace=True)]
         if decoder:
-            layers[-1] = nn.Sigmoid()  # Replace last ReLU with Sigmoid for decoder
+            layers[-1] = nn.Sigmoid() 
         return nn.Sequential(*layers)
 
     # The forward pass takes an input image, passes it through the encoder and decoder, and returns the output image
