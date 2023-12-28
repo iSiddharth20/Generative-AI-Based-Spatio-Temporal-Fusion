@@ -10,6 +10,7 @@ from PIL import ImageFile
 from pathlib import Path
 from torch.utils.data import DataLoader, Dataset, random_split
 import torchvision.transforms as transforms
+import torch
 
 # Allow loading of truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -32,12 +33,10 @@ class CustomDataset(Dataset):
 
     # Return the total number of images
     def __len__(self):
-        print('Executing __len__ of CustomDataset Class from data.py')
         return len(self.filenames)
 
     # Get a single item or a slice from the dataset
     def __getitem__(self, idx):
-        print('Executing __getitem__ of CustomDataset Class from data.py')
         if isinstance(idx, slice):
             return [self[i] for i in range(*idx.indices(len(self)))]
         # Get paths for grayscale and RGB images
@@ -50,52 +49,74 @@ class CustomDataset(Dataset):
         grayscale_img = self.transform(grayscale_img)
         rgb_img = self.transform(rgb_img)
         # Return transformed images
-        print(f'Loaded grayscale image: {grayscale_img.size()}, RGB image: {rgb_img.size()}')
         return grayscale_img, rgb_img
 
     # Get batches for autoencoder training
     def get_autoencoder_batches(self, val_split):
-        print('Executing get_autoencoder_batches of CustomDataset Class from data.py')
         # Calculate the number of samples to include in the validation set
         val_size = int(val_split * len(self))
         train_size = len(self) - val_size
         # Split the dataset into training and validation sets
         train_dataset, val_dataset = random_split(self, [train_size, val_size])
-        print(f'Autoencoder: Number of training samples: {len(train_dataset)}, Number of validation samples: {len(val_dataset)}')
         # Create dataloaders for the training and validation sets
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        print("Sample from autoencoder training data:")
-        for sample in train_loader:
-            print(f'Input shape: {sample[0].shape}, Target shape: {sample[1].shape}')
-            break  # Just print the first sample and break
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
         # Return the training and validation dataloaders
         return train_loader, val_loader
 
+    # Transform a sequence of images to tensors (Functionality for LSTM)
+    def transform_sequence(self, filenames):
+        print('Executing transform_sequence of CustomDataset Class from data.py')
+        images = [self.transform(Image.open(f)) for f in filenames]
+        print(f"Transformed sequence shape: {torch.stack(images).shape}")
+        return torch.stack(images) # Stack to form a sequence tensor
+    
     # Get batches for LSTM training
-    def get_lstm_batches(self, val_split):
+    def get_lstm_batches(self, val_split, sequence_length, sequence_stride=2):
         print('Executing get_lstm_batches of CustomDataset Class from data.py')
-        # Calculate the number of samples to include in the validation set
-        val_size = int(val_split * len(self))
-        train_size = len(self) - val_size
-        # Split the dataset into training and validation sets sequentially
-        train_dataset = self[:train_size]
-        val_dataset = self[train_size:]
-        print(f'LSTM: Number of training samples: {len(train_dataset)}, Number of validation samples: {len(val_dataset)}')
-        # Create dataloaders for the training and validation sets without shuffling
+        assert sequence_length % 2 == 0, "The sequence length must be even."
+        
+        # Compute the total number of sequences that can be formed, given the stride and length
+        sequence_indices = range(0, len(self.filenames) - sequence_length + 1, sequence_stride)
+        total_sequences = len(sequence_indices)
+        
+        # Divide the sequences into training and validation
+        train_size = int((1.0 - val_split) * total_sequences)
+        train_indices = sequence_indices[:train_size]
+        val_indices = sequence_indices[train_size:]
+
+        # Create dataset with valid sequences only
+        train_dataset = self.create_sequence_pairs(train_indices, sequence_length)
+        val_dataset = self.create_sequence_pairs(val_indices, sequence_length)
+        
+        # Create the data loaders for training and validation datasets
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=False)
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
-        # Print the shapes of the training and validation sets
-        print(f'Training set shape: {next(iter(train_loader))[0].shape}')
-        print(f'Validation set shape: {next(iter(val_loader))[0].shape}')
-        # Separate the odd-indexed and even-indexed images in the training and validation sets
-        train_loader_odd = [img for i, img in enumerate(train_loader) if i % 2 != 0]
-        train_loader_even = [img for i, img in enumerate(train_loader) if i % 2 == 0]
-        val_loader_odd = [img for i, img in enumerate(val_loader) if i % 2 != 0]
-        val_loader_even = [img for i, img in enumerate(val_loader) if i % 2 == 0]
-        print(f'train_loader_odd shape: {next(iter(train_loader_odd))[0].shape}')
-        print(f'train_loader_even shape: {next(iter(train_loader_even))[0].shape}')
-        print(f'val_loader_odd shape: {next(iter(val_loader_odd))[0].shape}')
-        print(f'val_loader_even shape: {next(iter(val_loader_even))[0].shape}')
-        # Return the training and validation dataloaders for odd-indexed and even-indexed images
-        return (train_loader_odd, train_loader_even) , (val_loader_odd, val_loader_even)
+
+        print("Sample from lstm training data:")
+        for input_seq, target_seq in train_loader:
+            print(f"Sample input shape in train_loader: {input_seq.shape}")
+            print(f"Sample target shape in train_loader: {target_seq.shape}")
+            break
+        print("Sample from lstm validation data:")
+        for input_seq, target_seq in val_loader:
+            print(f"Sample input shape in val_loader: {input_seq.shape}")
+            print(f"Sample target shape in val_loader: {target_seq.shape}")
+            break
+
+        return train_loader, val_loader
+
+    def create_sequence_pairs(self, indices, sequence_length):
+        print('Executing create_sequence_pairs of CustomDataset Class from data.py')
+        sequence_pairs = []
+        for start in indices:
+            end = start + sequence_length
+            # Make sure we don't go out of bounds
+            if end < len(self.filenames):
+                sequence_input = self.transform_sequence(self.filenames[start:end])
+                sequence_target = self.transform_sequence(self.filenames[start + 1:end + 1])
+                sequence_pairs.append((sequence_input, sequence_target))
+            else:
+                # Handle the last sequence by either discarding or padding
+                pass  # Choose to either discard (do nothing) or pad the sequence
+        return sequence_pairs
