@@ -21,7 +21,6 @@ class ConvLSTMCell(nn.Module):
     def forward(self, input_tensor, cur_state):
         h_cur, c_cur = cur_state
         combined = torch.cat([input_tensor, h_cur], dim=1)
-        print(f'ConvLSTMCell combined input shape (before conv): {combined.shape}')
         combined_conv = self.conv(combined)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
         i = torch.sigmoid(cc_i)
@@ -57,44 +56,40 @@ class ConvLSTM(nn.Module):
                                 torch.zeros(batch_size, self.hidden_dims[i], image_height, image_width, device=self.cells[i].conv.weight.device)])
         return init_states
     
+  
     def forward(self, input_tensor, cur_state=None):
-        print(f"Overall Input Tensor Shape: {input_tensor.shape}")
         b, seq_len, _, h, w = input_tensor.size()
 
         if cur_state is None:
             cur_state = self.init_hidden(b, h, w)
-            for h, c in cur_state:
-                print(f"Hidden State h Shape: {h.shape}")
-                print(f"Hidden State c Shape: {c.shape}")
 
-        output_sequence = []
-        last_state_list = []
+        # Initialize output tensors for each sequence element
+        output_sequence = torch.zeros((b, seq_len - 1, self.hidden_dims[-1], h, w), device=input_tensor.device)
 
         for layer_idx, cell in enumerate(self.cells):
+            
+            # Fix: Unpack hidden and cell states for the current layer
             h, c = cur_state[layer_idx]
-            internal_output_sequence = []
+            
+            # For handling the sequence of images
             for t in range(seq_len - 1):
-                print(f"Input tensor shape before LSTM cell: {input_tensor[:, t, :, :, :].shape}")
-                h, c = cell(input_tensor=input_tensor[:, t, :, :, :], cur_state=[h, c])
-                print(f"Output tensor shape after LSTM cell: {h.shape}")
-                internal_output_sequence.append(h)
+                # Perform forward pass through the cell
+                h, c = cell(input_tensor[:, t, :, :, :], (h, c)) # Updated to pass tuple `(h, c)`
 
-                # Interpolation (alpha-blending) between frames for intermediate frame generation
+                if layer_idx == self.num_layers - 1: # Only store output from the last layer
+                    output_sequence[:, t, :, :, :] = h
+                    
+                # Generate the next input from alpha-blending
                 if t != seq_len - 2:
                     next_input = (1 - self.alpha) * input_tensor[:, t, :, :, :] + self.alpha * input_tensor[:, t + 1, :, :, :]
-                    print(f'Alpha-blending input shape (before LSTM cell): {next_input.shape}')
-                    h, c = cell(input_tensor=next_input, cur_state=[h, c])
-                    print(f'Next hidden state shape (h): {h.shape}')
-                    print(f'Next cell state shape (c): {c.shape}')
-                    internal_output_sequence.append(h)
+                    h, c = cell(next_input, (h, c)) # Updated to pass tuple `(h, c)`
 
             cur_state[layer_idx] = (h, c)
-            output_sequence.append(internal_output_sequence[-1])
+            
+        # No need to stack since we're assigning the results in the output tensor
 
-            # Concatenate the output from each time step to form a sequence
-            output_sequence[layer_idx] = torch.stack(internal_output_sequence, dim=1)
-
-        # We take the output from the last layer as the predicted output
-        predicted_sequence = output_sequence[-1]
-
-        return predicted_sequence, cur_state
+        # Predict an extra frame beyond the last input frame
+        h, c = cell(input_tensor[:, -1, :, :, :], (h, c))
+        output_sequence = torch.cat([output_sequence, h.unsqueeze(1)], dim=1)
+               
+        return output_sequence, cur_state
