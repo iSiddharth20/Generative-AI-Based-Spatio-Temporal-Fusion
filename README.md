@@ -1,5 +1,5 @@
 # GenAI-Powered Spatio-Temporal Fusion for Video Super-Resolution
-![Status](https://img.shields.io/badge/status-ongoing-yellow.svg)
+![GitHub Latest Release)](https://img.shields.io/github/v/release/iSiddharth20/Generative-AI-Based-Spatio-Temporal-Fusion?logo=github)
 ![License](https://img.shields.io/github/license/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing)
 
 #### Based on PyTorch, Install [Here](https://pytorch.org/get-started/locally/)
@@ -23,18 +23,12 @@ Here's a visual representation of the data transformation:
 
 ## Resource Links
 
-- 🐞 [Issue Tracker](https://github.com/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing/issues) - Check out open issues and contribute by addressing them.
-- 🌐 [Dataset Access](https://www.kaggle.com/datasets/isiddharth/spatio-temporal-data-of-moon-rise-in-raw-and-tif) - The dataset is now available on Kaggle. Dive into real-world data!
-- 🔗 [Concept Presentation](./Documentation/Concept_Presentation.pptx) - Gain insights into the concept with the Powerpoint presentation.
-- 📊 [System Overview](./Documentation/System_Diagram.png) - See the system diagram for a high-level understanding of the project.
-
-## Concept Overview
-![System Diagram](./Documentation/System_Diagram.png)
+- [Code Explanation](CodeExplanation.md) 
+- [Issue Tracker](https://github.com/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing/issues)
+- [Dataset Access](https://www.kaggle.com/datasets/isiddharth/spatio-temporal-data-of-moon-rise-in-raw-and-tif)
 
 ## Contributions Welcome!
 Your interest in contributing to the project is highly respected. Aiming for collaborative excellence, your insights, code improvements, and innovative ideas are highly appreciated. Make sure to check [Contributing Guidelines](CONTRIBUTING.md) for more information on how you can become an integral part of this project.
 
 ## Acknowledgements
 A heartfelt thank you to all contributors and supporters who are on this journey to break new ground in video super-resolution technology.
-
-![Contributors](https://img.shields.io/github/contributors/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing)
