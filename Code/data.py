@@ -11,6 +11,7 @@ from pathlib import Path
 from torch.utils.data import DataLoader, Dataset, random_split
 import torchvision.transforms as transforms
 import torch
+import os
 
 # Allow loading of truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -26,6 +27,7 @@ class CustomDataset(Dataset):
         self.valid_exts = valid_exts  # Valid file extensions
         # Get list of valid image filenames
         self.filenames = [f for f in self.grayscale_dir.iterdir() if f.suffix in self.valid_exts]
+        self.length = len(self.filenames)
         # Define transformations: resize and convert to tensor
         self.transform = transforms.Compose([
             transforms.Resize(self.image_size),
@@ -33,7 +35,7 @@ class CustomDataset(Dataset):
 
     # Return the total number of images
     def __len__(self):
-        return len(self.filenames)
+        return self.length
 
     # Get a single item or a slice from the dataset
     def __getitem__(self, idx):
@@ -43,8 +45,12 @@ class CustomDataset(Dataset):
         grayscale_path = self.filenames[idx]
         rgb_path = self.rgb_dir / grayscale_path.name
         # Open images
-        grayscale_img = Image.open(grayscale_path)
-        rgb_img = Image.open(rgb_path)
+        try:
+            grayscale_img = Image.open(grayscale_path)
+            rgb_img = Image.open(rgb_path)
+        except IOError:
+            print(f"Error opening images {grayscale_path} or {rgb_path}")
+            return None
         # Apply transformations
         grayscale_img = self.transform(grayscale_img)
         rgb_img = self.transform(rgb_img)
@@ -72,24 +78,19 @@ class CustomDataset(Dataset):
     # Get batches for LSTM training
     def get_lstm_batches(self, val_split, sequence_length, sequence_stride=2):
         assert sequence_length % 2 == 0, "The sequence length must be even."
-        
         # Compute the total number of sequences that can be formed, given the stride and length
-        sequence_indices = range(0, len(self.filenames) - sequence_length + 1, sequence_stride)
+        sequence_indices = range(0, self.length - sequence_length + 1, sequence_stride)
         total_sequences = len(sequence_indices)
-        
         # Divide the sequences into training and validation
         train_size = int((1.0 - val_split) * total_sequences)
         train_indices = sequence_indices[:train_size]
         val_indices = sequence_indices[train_size:]
-
         # Create dataset with valid sequences only
         train_dataset = self.create_sequence_pairs(train_indices, sequence_length)
         val_dataset = self.create_sequence_pairs(val_indices, sequence_length)
-        
         # Create the data loaders for training and validation datasets
         train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=False)
         val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
-
         return train_loader, val_loader
 
     def create_sequence_pairs(self, indices, sequence_length):
@@ -97,7 +98,7 @@ class CustomDataset(Dataset):
         for start in indices:
             end = start + sequence_length
             # Make sure we don't go out of bounds
-            if end < len(self.filenames):
+            if end < self.length:
                 sequence_input = self.transform_sequence(self.filenames[start:end])
                 sequence_target = self.transform_sequence(self.filenames[start + 1:end + 1])
                 sequence_pairs.append((sequence_input, sequence_target))

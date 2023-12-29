@@ -24,9 +24,7 @@ class LossMEP(nn.Module):
         mse_loss = F.mse_loss(output, target)
         # Assume output to be raw logits: calculate log_probs and use it to compute entropy
         log_probs = F.log_softmax(output, dim=1)  # dim 1 is the channel dimension
-        probs = torch.exp(log_probs)
-        entropy_loss = -torch.sum(probs * log_probs, dim=1).mean()
-        
+        entropy_loss = -torch.sum(torch.exp(log_probs) * log_probs, dim=1).mean()
         # Combine MSE with entropy loss scaled by alpha factor
         composite_loss = (1 - self.alpha) * mse_loss + self.alpha * entropy_loss
         return composite_loss
