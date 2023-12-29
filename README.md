@@ -4,9 +4,7 @@
 
 #### Based on PyTorch, Install [Here](https://pytorch.org/get-started/locally/)
 
-Exploring the forefront of generative AI to enhance video quality through advanced spatio-temporal fusion techniques by Upscaling and Frame-Interpolation.
-
-This is an Approach leveraging Auto-Encoders, LSTM Networks and Maximum Entropy Principle.
+Exploring the forefront of generative AI to enhance video quality through advanced spatio-temporal fusion techniques by Upscaling and Frame-Interpolation, leveraging Auto-Encoders, LSTM Networks and Maximum Entropy Principle.
 
 ## Introduction
 Developing a novel approach to video super-resolution by harnessing the potential of Auto-Encoders, LSTM Networks, and the Maximum Entropy Principle. The project aims to refine the spatial and temporal resolution of video data, unlocking new possibilities in high-resolution, high-fps, more-color-dense videos and beyond.
