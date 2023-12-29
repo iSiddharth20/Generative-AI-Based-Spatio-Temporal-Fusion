@@ -2,7 +2,7 @@
 ![Status](https://img.shields.io/badge/status-ongoing-yellow.svg)
 ![License](https://img.shields.io/github/license/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing)
 
-First Stable Version Released on : December 28, 2023.
+#### Based on PyTorch, Install [Here](https://pytorch.org/get-started/locally/)
 
 Exploring the forefront of generative AI to enhance video quality through advanced spatio-temporal fusion techniques by Upscaling and Frame-Interpolation.
 
