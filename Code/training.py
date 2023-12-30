@@ -29,6 +29,7 @@ class Trainer():
             self.model = DDP(self.model, device_ids=[rank])
         # Define the path to save the model
         self.model_save_path = model_save_path if rank == 0 else None  # Only save on master process
+        print(f'Process {self.rank} is using {self.device}')
 
     def cleanup_ddp(self):
         dist.destroy_process_group()
