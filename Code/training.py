@@ -11,21 +11,27 @@ Initialize Best Validation Loss to Infinity as we will save model with lowest va
 # Import Necessary Libraries
 import torch
 import torch.nn as nn
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
 
 # Define Training Class
 class Trainer():
-    def __init__(self, model, loss_function, optimizer=None, model_save_path=None):
-        # Use All Available CUDA GPUs for Training (if Available)
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        if torch.cuda.device_count() > 1:
-            model = nn.DataParallel(model)
+    def __init__(self, model, loss_function, optimizer=None, model_save_path=None, rank=None):
+        self.rank = rank # Rank of the current process
+        self.device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else 'cpu')
         self.model = model.to(self.device)
         # Define the loss function
         self.loss_function = loss_function
         # Define the optimizer
         self.optimizer = optimizer if optimizer is not None else torch.optim.Adam(self.model.parameters(), lr=0.001)
+        # Wrap model with DDP
+        if torch.cuda.device_count() > 1 and rank is not None:
+            self.model = DDP(self.model, device_ids=[rank])
         # Define the path to save the model
-        self.model_save_path = model_save_path
+        self.model_save_path = model_save_path if rank == 0 else None  # Only save on master process
+
+    def cleanup_ddp(self):
+        dist.destroy_process_group()
 
     def save_model(self):
         # Save the model

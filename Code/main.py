@@ -15,16 +15,23 @@ from training import Trainer
 import os
 import traceback
 import torch
+import torch.multiprocessing as mp
+import torch.distributed as dist
 
 # Define Working Directories
 grayscale_dir = '../Dataset/Greyscale'
 rgb_dir = '../Dataset/RGB'
 
 # Define Universal Parameters
-image_height = 400
-image_width = 600
+image_height = 4000
+image_width = 6000
 batch_size = 2
 
+def main_worker(rank, world_size):
+    # Initialize the distributed environment.
+    dist.init_process_group(backend="nccl", init_method="env://", world_size=world_size, rank=rank)
+    main()  # Call the existing main function.
+    dist.destroy_process_group()  # Cleanup after finishing.
 
 def main():
     # Initialize Dataset Object (PyTorch Tensors)
@@ -150,4 +157,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    world_size = torch.cuda.device_count()  # Number of available GPUs
+    mp.spawn(main_worker, args=(world_size,), nprocs=world_size, join=True)
