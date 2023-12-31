@@ -30,10 +30,10 @@ batch_size = 2
 def main_worker(rank, world_size):
     # Initialize the distributed environment.
     dist.init_process_group(backend="nccl", init_method="env://", world_size=world_size, rank=rank)
-    main()  # Call the existing main function.
-    dist.destroy_process_group()  # Cleanup after finishing.
+    print(f"Initialized process group for rank {rank}, world size {world_size}")
+    main(rank)  # Call the existing main function.
 
-def main():
+def main(rank):
     # Initialize Dataset Object (PyTorch Tensors)
     try:
         dataset = CustomDataset(grayscale_dir, rgb_dir, (image_height, image_width), batch_size)
@@ -70,17 +70,17 @@ def main():
     # Method 1 : Baseline : Mean Squared Error Loss for AutoEncoder and LSTM
     os.makedirs('../Models/Method1', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method1/model_autoencoder_m1.pth'
-    trainer_autoencoder_baseline = Trainer(model_autoencoder, loss_mse, optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), model_save_path=model_save_path_ae)
+    trainer_autoencoder_baseline = Trainer(model_autoencoder, loss_mse, optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), model_save_path=model_save_path_ae, rank=rank)
     print('Method-1 AutoEncoder Trainer Initialized.')
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
-    trainer_lstm_baseline = Trainer(model_lstm, loss_mse, optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), model_save_path=model_save_path_lstm)
+    trainer_lstm_baseline = Trainer(model_lstm, loss_mse, optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), model_save_path=model_save_path_lstm, rank=rank)
     print('Method-1 LSTM Trainer Initialized.')
     print('-'*10) # Makes Output Readable
 
     # Method 2 : Composite Loss (MSE + MaxEnt) for AutoEncoder and Mean Squared Error Loss for LSTM
     os.makedirs('../Models/Method2', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method2/model_autoencoder_m2.pth'
-    trainer_autoencoder_m2 = Trainer(model=model_autoencoder, loss_function=loss_mep, optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), model_save_path=model_save_path_ae)
+    trainer_autoencoder_m2 = Trainer(model=model_autoencoder, loss_function=loss_mep, optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), model_save_path=model_save_path_ae, rank=rank)
     print('Method-2 AutoEncoder Trainer Initialized.')
     print('Method-2 LSTM == Method-1 LSTM')
     print('-'*10) # Makes Output Readable
@@ -89,7 +89,7 @@ def main():
     os.makedirs('../Models/Method3', exist_ok=True) # Creating Directory for Model Saving
     print('Method-3 AutoEncoder == Method-1 AutoEncoder')
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
-    trainer_lstm_m3 = Trainer(model_lstm, loss_ssim, optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), model_save_path=model_save_path_lstm)
+    trainer_lstm_m3 = Trainer(model_lstm, loss_ssim, optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), model_save_path=model_save_path_lstm, rank=rank)
     print('Method-3 LSTM Trainer Initialized.')
     print('-'*10) # Makes Output Readable
 
