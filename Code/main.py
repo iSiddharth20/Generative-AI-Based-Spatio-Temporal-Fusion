@@ -37,8 +37,8 @@ def main_worker(rank, world_size):
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
     dist.init_process_group(backend="nccl", init_method="env://", world_size=world_size, rank=rank)
-    # Suppress warnings after initializing the process group.
-    warnings.filterwarnings("ignore", category=UserWarning, module='torch.nn.parallel')
+    # Suppress warnings about unused parameters specifically.
+    warnings.filterwarnings("ignore", message="*find_unused_parameters=True*", category=UserWarning, module='torch.nn.parallel')
     main(rank)  # Call the existing main function.
 
 def main(rank):
