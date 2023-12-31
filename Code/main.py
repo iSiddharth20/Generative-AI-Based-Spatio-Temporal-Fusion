@@ -83,11 +83,21 @@ def main(rank):
     # Method 1 : Baseline : Mean Squared Error Loss for AutoEncoder and LSTM
     os.makedirs('../Models/Method1', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method1/model_autoencoder_m1.pth'
-    trainer_autoencoder_baseline = Trainer(model_autoencoder, loss_mse, optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), model_save_path=model_save_path_ae, rank=rank)
+    trainer_autoencoder_baseline = Trainer(model_autoencoder, 
+                                           loss_mse, 
+                                           optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), 
+                                           model_save_path=model_save_path_ae, 
+                                           rank=rank, 
+                                           find_unused_parameters=False)
     if rank == 0:
         print('Method-1 AutoEncoder Trainer Initialized.')
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
-    trainer_lstm_baseline = Trainer(model_lstm, loss_mse, optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), model_save_path=model_save_path_lstm, rank=rank)
+    trainer_lstm_baseline = Trainer(model_lstm, 
+                                    loss_mse, 
+                                    optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), 
+                                    model_save_path=model_save_path_lstm, 
+                                    rank=rank,
+                                    find_unused_parameters=True)
     if rank == 0:
         print('Method-1 LSTM Trainer Initialized.')
         print('-'*10) # Makes Output Readable
@@ -95,7 +105,12 @@ def main(rank):
     # Method 2 : Composite Loss (MSE + MaxEnt) for AutoEncoder and Mean Squared Error Loss for LSTM
     os.makedirs('../Models/Method2', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method2/model_autoencoder_m2.pth'
-    trainer_autoencoder_m2 = Trainer(model=model_autoencoder, loss_function=loss_mep, optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), model_save_path=model_save_path_ae, rank=rank)
+    trainer_autoencoder_m2 = Trainer(model=model_autoencoder, 
+                                     loss_function=loss_mep, 
+                                     optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), 
+                                     model_save_path=model_save_path_ae, 
+                                     rank=rank,
+                                     find_unused_parameters=False)
     if rank == 0:
         print('Method-2 AutoEncoder Trainer Initialized.')
         print('Method-2 LSTM == Method-1 LSTM')
@@ -106,7 +121,12 @@ def main(rank):
     if rank == 0:
         print('Method-3 AutoEncoder == Method-1 AutoEncoder')
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
-    trainer_lstm_m3 = Trainer(model_lstm, loss_ssim, optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), model_save_path=model_save_path_lstm, rank=rank)
+    trainer_lstm_m3 = Trainer(model_lstm, 
+                              loss_ssim, 
+                              optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), 
+                              model_save_path=model_save_path_lstm, 
+                              rank=rank,
+                              find_unused_parameters=True)
     if rank == 0:
         print('Method-3 LSTM Trainer Initialized.')
         print('-'*10) # Makes Output Readable
