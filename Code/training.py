@@ -35,8 +35,9 @@ class Trainer():
         dist.destroy_process_group()
 
     def save_model(self):
-        # Save the model
-        torch.save(self.model.state_dict(), self.model_save_path)
+        if self.rank == 0:
+            # Save the model
+            torch.save(self.model.state_dict(), self.model_save_path)
 
     def train_autoencoder(self, epochs, train_loader, val_loader):
         # Print Names of All Available GPUs (if any) to Train the Model 
