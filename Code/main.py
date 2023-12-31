@@ -33,7 +33,6 @@ def main_worker(rank, world_size):
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
     dist.init_process_group(backend="nccl", init_method="env://", world_size=world_size, rank=rank)
-    print(f"Initialized process group for rank {rank}, world size {world_size}")
     main(rank)  # Call the existing main function.
 
 def main(rank):

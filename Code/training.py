@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
+import warnings
 
 # Define Training Class
 class Trainer():
@@ -26,10 +27,11 @@ class Trainer():
         self.optimizer = optimizer if optimizer is not None else torch.optim.Adam(self.model.parameters(), lr=0.001)
         # Wrap model with DDP
         if torch.cuda.device_count() > 1 and rank is not None:
-            self.model = DDP(self.model, device_ids=[rank], find_unused_parameters=True)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning) # Remove Warnings Shown because of 'find_unused_parameters=True'
+                self.model = DDP(self.model, device_ids=[rank], find_unused_parameters=True)
         # Define the path to save the model
         self.model_save_path = model_save_path if rank == 0 else None  # Only save on master process
-        print(f'Process {self.rank} is using {self.device}')
 
     def cleanup_ddp(self):
         if dist.is_initialized():
