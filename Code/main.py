@@ -39,7 +39,7 @@ def main_worker(rank, world_size):
     dist.init_process_group(backend="nccl", init_method="env://", world_size=world_size, rank=rank)
     # Suppress warnings about unused parameters specifically.
     if rank == 0:
-        warnings.filterwarnings("ignore", message=".*find_unused_parameters=True.*", category=UserWarning, module='torch.nn.parallel')
+        warnings.filterwarnings("ignore", message=".*find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass.*", category=UserWarning, module='torch.nn.parallel')
     main(rank)  # Call the existing main function.
 
 def main(rank):
