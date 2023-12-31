@@ -3,12 +3,11 @@ Main Module
 --------------------------------------------------------------------------------
 '''
 
-# Disable below 5 Lines if you want Detailed Errors and Warnings Printed on Terminal
-import warnings
+# Disable below 4 Lines if you want Detailed Errors and Warnings Printed on Terminal
 import os
 import sys
-warnings.filterwarnings("ignore", category=UserWarning, module="torch")
-sys.stderr = open(os.devnull, 'w')
+sys.stdout = open('/dev/null', 'w')
+sys.stderr = open('/dev/null', 'w')
 
 # Importing Custom Modules
 from data import CustomDataset
