@@ -17,6 +17,7 @@ import traceback
 import torch
 import torch.multiprocessing as mp
 import torch.distributed as dist
+import warnings
 
 # Define Working Directories
 grayscale_dir = '../Dataset/Greyscale'
@@ -219,5 +220,8 @@ def main(rank):
 
 
 if __name__ == '__main__':
+    if dist.get_rank() == 0:
+        # Remove Warnings
+        warnings.filterwarnings("ignore", category=UserWarning, module='torch.nn.parallel.distributed')
     world_size = torch.cuda.device_count()  # Number of available GPUs
     mp.spawn(main_worker, args=(world_size,), nprocs=world_size, join=True)
