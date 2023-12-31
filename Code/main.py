@@ -29,14 +29,16 @@ image_width = 600
 batch_size = 2
 
 def main_worker(rank, world_size):
+    # Set environment variables
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12345'
     # Initialize the distributed environment.
     torch.manual_seed(0)
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
     dist.init_process_group(backend="nccl", init_method="env://", world_size=world_size, rank=rank)
-    # Filter out the warnings after the process group has been initialized.
-    if rank == 0:
-        warnings.filterwarnings("ignore", category=UserWarning, module='torch.nn.parallel')
+    # Suppress warnings after initializing the process group.
+    warnings.filterwarnings("ignore", category=UserWarning, module='torch.nn.parallel')
     main(rank)  # Call the existing main function.
 
 def main(rank):
@@ -223,8 +225,5 @@ def main(rank):
 
 
 if __name__ == '__main__':
-    if dist.get_rank() == 0:
-        warnings.filterwarnings("ignore", category=UserWarning, module='torch.nn.parallel.distributed')
-
     world_size = torch.cuda.device_count()  # Number of available GPUs
     mp.spawn(main_worker, args=(world_size,), nprocs=world_size, join=True)
