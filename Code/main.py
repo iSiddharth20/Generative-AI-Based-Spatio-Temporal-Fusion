@@ -5,9 +5,9 @@ Main Module
 
 # Disable below 5 Lines if you want Detailed Errors and Warnings Printed on Terminal
 import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 import os
 import sys
+warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 sys.stderr = open(os.devnull, 'w')
 
 # Importing Custom Modules
