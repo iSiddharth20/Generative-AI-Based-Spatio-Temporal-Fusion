@@ -28,7 +28,7 @@ class Trainer():
         # Wrap model with DDP
         if torch.cuda.device_count() > 1 and rank is not None:
             # Suppress warnings about unused parameters specifically.
-            warnings.filterwarnings("ignore", message="*find_unused_parameters=True*", category=UserWarning, module='torch.nn.parallel')
+            warnings.filterwarnings("ignore", message=".*find_unused_parameters=True.*", category=UserWarning, module='torch.nn.parallel')
             self.model = DDP(self.model, device_ids=[rank], find_unused_parameters=True)
         # Define the path to save the model
         self.model_save_path = model_save_path if rank == 0 else None  # Only save on master process
