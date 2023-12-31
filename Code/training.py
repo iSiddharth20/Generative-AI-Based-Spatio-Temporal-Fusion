@@ -14,11 +14,11 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 
 # Disable below 5 Lines if you want Detailed Errors and Warnings Printed on Terminal
-# import warnings
+import warnings
 import os
 import sys
 sys.stderr = open(os.devnull, 'w')
-# warnings.filterwarnings("ignore", category=UserWarning, module="torch")
+warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 
 # Define Training Class
 class Trainer():
