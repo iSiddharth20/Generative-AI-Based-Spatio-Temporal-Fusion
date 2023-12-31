@@ -18,13 +18,6 @@ import torch
 import torch.multiprocessing as mp
 import torch.distributed as dist
 
-# Disable below 5 Lines if you want Detailed Errors and Warnings Printed on Terminal
-import warnings
-import os
-import sys
-sys.stderr = open(os.devnull, 'w')
-warnings.filterwarnings("ignore", category=UserWarning, module="torch")
-
 # Define Working Directories
 grayscale_dir = '../Dataset/Greyscale'
 rgb_dir = '../Dataset/RGB'

@@ -13,6 +13,13 @@ import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 
+# Disable below 5 Lines if you want Detailed Errors and Warnings Printed on Terminal
+# import warnings
+import os
+import sys
+sys.stderr = open(os.devnull, 'w')
+# warnings.filterwarnings("ignore", category=UserWarning, module="torch")
+
 # Define Training Class
 class Trainer():
     def __init__(self, model, loss_function, optimizer=None, model_save_path=None, rank=None):
