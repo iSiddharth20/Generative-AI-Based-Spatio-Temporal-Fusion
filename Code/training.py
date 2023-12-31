@@ -10,13 +10,12 @@ Initialize Best Validation Loss to Infinity as we will save model with lowest va
 
 # Import Necessary Libraries
 import torch
-import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 
 # Suppress warnings about find_unused_parameters=True
 import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module="torch.distributed")
+warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 
 # Define Training Class
 class Trainer():

@@ -20,7 +20,7 @@ import torch.distributed as dist
 
 # Suppress warnings about find_unused_parameters=True
 import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module="torch.distributed")
+warnings.filterwarnings("ignore", category=UserWarning, module="torch")
 
 # Define Working Directories
 grayscale_dir = '../Dataset/Greyscale'
