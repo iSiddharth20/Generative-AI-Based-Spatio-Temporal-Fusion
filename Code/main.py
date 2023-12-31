@@ -112,6 +112,8 @@ def main(rank):
     except Exception as e:
         print(f"Method-1 AutoEncoder Training Error : \n{e}")
         traceback.print_exc()
+    finally:
+        trainer_autoencoder_baseline.cleanup_ddp()
     print('-'*10) # Makes Output Readable
     try:
         epochs = 1
@@ -121,6 +123,8 @@ def main(rank):
     except Exception as e:
         print(f"Method-1 LSTM Training Error : \n{e}")
         traceback.print_exc()
+    finally:
+        trainer_lstm_baseline.cleanup_ddp()
     print('-'*20) # Makes Output Readable
 
     # Method-2
@@ -132,6 +136,8 @@ def main(rank):
     except Exception as e:
         print(f"Method-2 AutoEncoder Training Error : \n{e}")
         traceback.print_exc()
+    finally:
+        trainer_autoencoder_m2.cleanup_ddp()
     print('-'*10) # Makes Output Readable
     print("Method-2 LSTM == Method-1 LSTM, No Need To Train Again.")
     print('-'*20) # Makes Output Readable
@@ -147,6 +153,8 @@ def main(rank):
     except Exception as e:
         print(f"Method-3 LSTM Training Error : \n{e}")
         traceback.print_exc()
+    finally:
+        trainer_lstm_m3.cleanup_ddp()
     print('-'*20) # Makes Output Readable
 
     # Method-4
