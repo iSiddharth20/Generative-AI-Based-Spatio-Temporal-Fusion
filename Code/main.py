@@ -87,16 +87,16 @@ def main(rank):
     # Method 1 : Baseline : Mean Squared Error Loss for AutoEncoder and LSTM
     os.makedirs('../Models/Method1', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method1/model_autoencoder_m1.pth'
-    trainer_autoencoder_baseline = Trainer(model_autoencoder, 
-                                           loss_mse, 
+    trainer_autoencoder_baseline = Trainer(model=model_autoencoder, 
+                                           loss_function=loss_mse, 
                                            optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), 
                                            model_save_path=model_save_path_ae, 
                                            rank=rank)
     if rank == 0:
         print('Method-1 AutoEncoder Trainer Initialized.')
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
-    trainer_lstm_baseline = Trainer(model_lstm, 
-                                    loss_mse, 
+    trainer_lstm_baseline = Trainer(model=model_lstm, 
+                                    loss_function=loss_mse, 
                                     optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), 
                                     model_save_path=model_save_path_lstm, 
                                     rank=rank)
@@ -122,8 +122,8 @@ def main(rank):
     if rank == 0:
         print('Method-3 AutoEncoder == Method-1 AutoEncoder')
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
-    trainer_lstm_m3 = Trainer(model_lstm, 
-                              loss_ssim, 
+    trainer_lstm_m3 = Trainer(model=model_lstm, 
+                              loss_function=loss_ssim, 
                               optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), 
                               model_save_path=model_save_path_lstm, 
                               rank=rank)
