@@ -42,7 +42,7 @@ class Trainer():
 
     def train_autoencoder(self, epochs, train_loader, val_loader):
         # Print Names of All Available GPUs (if any) to Train the Model 
-        if torch.cuda.device_count() > 0:
+        if torch.cuda.device_count() > 0 and self.rank == 0:
             gpu_names = ', '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
             print("\tGPUs being used for Training : ",gpu_names)
         best_val_loss = float('inf')  
@@ -63,7 +63,8 @@ class Trainer():
                 val_loss = sum(self.loss_function(self.model(input.to(self.device)), target.to(self.device)).item() for input, target in val_loader)  # Compute Total Validation Loss
                 val_loss /= len(val_loader)  # Compute Average Validation Loss
             # Print epochs and losses
-            print(f'\tAutoEncoder Epoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss}')
+            if self.rank == 0:
+                print(f'\tAutoEncoder Epoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss}')
             # If the current validation loss is lower than the best validation loss, save the model
             if val_loss < best_val_loss:
                 best_val_loss = val_loss  # Update the best validation loss
@@ -73,7 +74,7 @@ class Trainer():
     
     def train_lstm(self, epochs, train_loader, val_loader):
         # Print Names of All Available GPUs (if any) to Train the Model 
-        if torch.cuda.device_count() > 0:
+        if torch.cuda.device_count() > 0 and self.rank == 0:
             gpu_names = ', '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
             print("\tGPUs being used for Training : ",gpu_names)
         best_val_loss = float('inf')
@@ -97,7 +98,8 @@ class Trainer():
                     val_loss += self.loss_function(output_sequence, target_sequence).item()  # Accumulate loss
                 val_loss /= len(val_loader)  # Average validation loss
             # Print epochs and losses
-            print(f'\tLSTM Epoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss}')
+            if self.rank == 0:
+                print(f'\tLSTM Epoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss}')
             # Model saving based on validation loss
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
