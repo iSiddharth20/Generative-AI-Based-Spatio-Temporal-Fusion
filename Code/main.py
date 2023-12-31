@@ -3,12 +3,6 @@ Main Module
 --------------------------------------------------------------------------------
 '''
 
-# Disable below 4 Lines if you want Detailed Errors and Warnings Printed on Terminal
-import os
-import sys
-sys.stdout = open('/dev/null', 'w')
-sys.stderr = open('/dev/null', 'w')
-
 # Importing Custom Modules
 from data import CustomDataset
 from autoencoder_model import Grey2RGBAutoEncoder
