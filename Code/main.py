@@ -34,8 +34,8 @@ def main_worker(rank, world_size):
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
     dist.init_process_group(backend="nccl", init_method="env://", world_size=world_size, rank=rank)
-    if dist.get_rank() == 0:
-        # Remove Warnings
+    # Filter out the warnings after the process group has been initialized.
+    if rank == 0:
         warnings.filterwarnings("ignore", category=UserWarning, module='torch.nn.parallel')
     main(rank)  # Call the existing main function.
 
