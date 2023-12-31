@@ -87,8 +87,7 @@ def main(rank):
                                            loss_mse, 
                                            optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), 
                                            model_save_path=model_save_path_ae, 
-                                           rank=rank, 
-                                           find_unused_parameters=False)
+                                           rank=rank)
     if rank == 0:
         print('Method-1 AutoEncoder Trainer Initialized.')
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
@@ -96,8 +95,7 @@ def main(rank):
                                     loss_mse, 
                                     optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), 
                                     model_save_path=model_save_path_lstm, 
-                                    rank=rank,
-                                    find_unused_parameters=True)
+                                    rank=rank)
     if rank == 0:
         print('Method-1 LSTM Trainer Initialized.')
         print('-'*10) # Makes Output Readable
@@ -109,8 +107,7 @@ def main(rank):
                                      loss_function=loss_mep, 
                                      optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), 
                                      model_save_path=model_save_path_ae, 
-                                     rank=rank,
-                                     find_unused_parameters=False)
+                                     rank=rank)
     if rank == 0:
         print('Method-2 AutoEncoder Trainer Initialized.')
         print('Method-2 LSTM == Method-1 LSTM')
@@ -125,8 +122,7 @@ def main(rank):
                               loss_ssim, 
                               optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), 
                               model_save_path=model_save_path_lstm, 
-                              rank=rank,
-                              find_unused_parameters=True)
+                              rank=rank)
     if rank == 0:
         print('Method-3 LSTM Trainer Initialized.')
         print('-'*10) # Makes Output Readable

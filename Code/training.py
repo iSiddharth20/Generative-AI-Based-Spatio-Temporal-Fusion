@@ -16,7 +16,7 @@ import torch.distributed as dist
 
 # Define Training Class
 class Trainer():
-    def __init__(self, model, loss_function, optimizer=None, model_save_path=None, rank=None, find_unused_parameters=True):
+    def __init__(self, model, loss_function, optimizer=None, model_save_path=None, rank=None):
         self.rank = rank # Rank of the current process
         self.device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else 'cpu')
         self.model = model.to(self.device)
@@ -26,7 +26,7 @@ class Trainer():
         self.optimizer = optimizer if optimizer is not None else torch.optim.Adam(self.model.parameters(), lr=0.001)
         # Wrap model with DDP
         if torch.cuda.device_count() > 1 and rank is not None:
-            self.model = DDP(self.model, device_ids=[rank], find_unused_parameters=find_unused_parameters)
+            self.model = DDP(self.model, device_ids=[rank], find_unused_parameters=True)
         # Define the path to save the model
         self.model_save_path = model_save_path if rank == 0 else None  # Only save on master process
     
