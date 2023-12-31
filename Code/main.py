@@ -10,7 +10,6 @@ from lstm_model import ConvLSTM
 from losses import LossMSE, LossMEP, SSIMLoss
 from training import Trainer
 
-
 # Import Necessary Libraries
 import os
 import traceback
@@ -18,9 +17,10 @@ import torch
 import torch.multiprocessing as mp
 import torch.distributed as dist
 
-# Suppress warnings about find_unused_parameters=True
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning, module="torch")
+# Disable below 3 Lines if you want Detailed Errors and Warnings Printed on Terminal
+import os
+import sys
+sys.stderr = open(os.devnull, 'w')
 
 # Define Working Directories
 grayscale_dir = '../Dataset/Greyscale'
