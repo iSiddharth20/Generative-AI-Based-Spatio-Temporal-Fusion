@@ -16,15 +16,23 @@ import traceback
 import torch
 import torch.multiprocessing as mp
 import torch.distributed as dist
+import platform
 
 # Define Working Directories
 grayscale_dir = '../Dataset/Greyscale'
 rgb_dir = '../Dataset/RGB'
 
 # Define Universal Parameters
-image_height = 3000
-image_width = 4500
+image_height = 4000
+image_width = 6000
 batch_size = 2
+
+def get_backend():
+    system_type = platform.system()
+    if system_type == "Linux":
+        return "nccl"
+    else:
+        return "gloo"
 
 def main_worker(rank, world_size):
     # Set environment variables
@@ -34,7 +42,7 @@ def main_worker(rank, world_size):
     torch.manual_seed(0)
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
-    dist.init_process_group(backend="nccl", init_method="env://", world_size=world_size, rank=rank)
+    dist.init_process_group(backend=get_backend(), init_method="env://", world_size=world_size, rank=rank)
     main(rank)  # Call the existing main function.
 
 def main(rank):
