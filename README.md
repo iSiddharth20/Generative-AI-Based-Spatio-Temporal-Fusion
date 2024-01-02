@@ -7,16 +7,17 @@
 Exploring the forefront of generative AI to enhance video quality through advanced spatio-temporal fusion techniques by Upscaling and Frame-Interpolation, leveraging Auto-Encoders, LSTM Networks and Maximum Entropy Principle.
 
 ## Introduction
-Developing a novel approach to video super-resolution by harnessing the potential of Auto-Encoders, LSTM Networks, and the Maximum Entropy Principle. The project aims to refine the spatial and temporal resolution of video data, unlocking new possibilities in high-resolution, high-fps, more-color-dense videos and beyond.
+This project is a novel approach to enhance video resolution both spatially and temporally using generative AI techniques. By leveraging Auto-Encoders and LSTM Networks, the project aims to interpolate high-temporal-resolution grayscale images and colorize them by learning from a corresponding set of RGB images, ultimately achieving high-fidelity video super-resolution.
+
 
 ## Research Objective
-
 The main goals of the project are:
 - To learn temporal dependencies among spatially-sparse-temporally-dense greyscale image frames to predict and interpolate new frames, hence, increasing temporal resolution.
 - To learn spatial dependencies through spatially-dense-temporally-sparse sequences that include both greyscale and corresponding RGB image frames to generate colorized versions of greyscale frames, thus, enhancing spatial resolution.
 
+
 Here's a visual representation of the data transformation:
-- **Current Format**: `[Grey-1] [Grey-2, RGB-2] [Grey-3] [Grey-4] ... [Grey-8, RGB-8] [Grey-9] [Grey-10]`
+- **Current Format**: ` [Grey-1] [Grey-2, RGB-2] [Grey-3] [Grey-4] ... [Grey-8, RGB-8] [Grey-9] [Grey-10]`
 - **Post-Processing**: `[RGB-1] [RGB-1.5] [RGB-2] [RGB-2.5] ... [RGB-8.5] [RGB-9] [RGB-9.5] [RGB-10]`
 
 ## Resource Links
