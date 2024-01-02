@@ -16,9 +16,9 @@ class Grey2RGBAutoEncoder(nn.Module):
     def __init__(self):  
         super(Grey2RGBAutoEncoder, self).__init__()  
         # Define the Encoder
-        self.encoder = self._make_layers([1, 64, 128, 256])
+        self.encoder = self._make_layers([1, 8, 16, 32])
         # Define the Decoder
-        self.decoder = self._make_layers([256, 128, 64, 3], decoder=True)
+        self.decoder = self._make_layers([32, 16, 8, 3], decoder=True)
 
     # Helper function to create the encoder or decoder layers.
     def _make_layers(self, channels, decoder=False):

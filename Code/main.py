@@ -22,8 +22,8 @@ grayscale_dir = '../Dataset/Greyscale'
 rgb_dir = '../Dataset/RGB'
 
 # Define Universal Parameters
-image_height = 400
-image_width = 600
+image_height = 3000
+image_width = 4500
 batch_size = 2
 
 def main_worker(rank, world_size):
