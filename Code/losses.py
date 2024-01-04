@@ -18,16 +18,20 @@ Class for Composite Loss with MaxEnt Regularization Term
 class LossMEP(nn.Module):
     def __init__(self, alpha=0.5):
         super(LossMEP, self).__init__()
-        self.alpha = alpha  # Weighting factor for the loss
-
+        self.alpha = alpha  # Weighting factor for total variation loss
+        
     def forward(self, output, target):
-        mse_loss = F.mse_loss(output, target)
-        # Assume output to be raw logits: calculate log_probs and use it to compute entropy
-        log_probs = F.log_softmax(output, dim=1)  # dim 1 is the channel dimension
-        entropy_loss = -torch.sum(torch.exp(log_probs) * log_probs, dim=1).mean()
-        # Combine MSE with entropy loss scaled by alpha factor
-        composite_loss = (1 - self.alpha) * mse_loss + self.alpha * entropy_loss
-        return composite_loss
+        mse_loss = F.mse_loss(output, target)  # MSE loss between output and target
+        # Calculate dimensions of the output
+        batch_size, _, height, width = output.size()
+        # Total variation loss for output, penalizes large differences between neighboring pixel-values
+        tv_loss = torch.sum(torch.abs(output[:, :, :-1] - output[:, :, 1:])) + \
+                  torch.sum(torch.abs(output[:, :, :, :-1] - output[:, :, :, 1:]))
+        tv_loss /= batch_size * height * width  # Normalize by total size
+        # Composite loss
+        loss = mse_loss + self.alpha * tv_loss
+        # Return the composite loss
+        return loss  
 
 '''
 Class for Mean Squared Error (MSE) Loss
@@ -57,5 +61,5 @@ class SSIMLoss(nn.Module):
             seq2_slice = seq2[i, t:t+1, ...]
             ssim_val = self.ssim_module(seq1_slice, seq2_slice)
             ssim_values.append(ssim_val) # Compute SSIM for each frame in the sequence
-        avg_ssim = torch.stack(ssim_values).mean() # Average SSIM across all frames
+        avg_ssim = torch.stack(ssim_values).median() # Median SSIM across all frames
         return 1 - avg_ssim
