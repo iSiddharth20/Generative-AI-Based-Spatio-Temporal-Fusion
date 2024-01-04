@@ -23,8 +23,8 @@ grayscale_dir = '../Dataset/Greyscale'
 rgb_dir = '../Dataset/RGB'
 
 # Define Universal Parameters
-image_height = 400
-image_width = 600
+image_height = 2000
+image_width = 3000
 batch_size = 2
 
 def get_backend():
@@ -59,8 +59,8 @@ def main(rank):
     # Import Loss Functions
     try:
         loss_mse = LossMSE() # Mean Squared Error Loss
-        loss_mep = LossMEP(alpha=0.4) # Maximum Entropy Loss
-        loss_ssim = SSIMLoss() # Structural Similarity Index Measure Loss
+        loss_mep = LossMEP(alpha=0.2) # Maximum Entropy Loss
+        loss_ssim = SSIMLoss(alpha=0.2) # Structural Similarity Index Measure Loss
         if rank == 0:
             print('Importing Loss Functions Complete.')
     except Exception as e:
@@ -82,7 +82,7 @@ def main(rank):
     data_lstm_train, data_lstm_val = dataset.get_lstm_batches(val_split=0.25, sequence_length=2)
     if rank == 0:
         print('LSTM Model Data Imported.')
-    model_lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(3, 3), num_layers=3, alpha=0.5)
+    model_lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(5, 5), num_layers=3, alpha=0.5)
     if rank == 0:
         print('LSTM Model Initialized.')
         print('-'*20) # Makes Output Readable
@@ -149,7 +149,7 @@ def main(rank):
     ''' 
     # Method-1
     try:
-        epochs = 1
+        epochs = 10
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
         model_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
@@ -165,7 +165,7 @@ def main(rank):
     if rank == 0:
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 1
+        epochs = 10
         if rank == 0:
             print('Method-1 LSTM Training Start')
         model_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
@@ -183,7 +183,7 @@ def main(rank):
 
     # Method-2
     try:
-        epochs = 1
+        epochs = 10
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
         model_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
@@ -205,7 +205,7 @@ def main(rank):
         print("Method-3 AutoEncoder == Method-1 AutoEncoder, No Need To Train Again.")
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 1
+        epochs = 10
         if rank == 0:
             print('Method-3 LSTM Training Start.')
         model_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
