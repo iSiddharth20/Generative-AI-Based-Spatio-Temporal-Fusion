@@ -19,13 +19,13 @@ import torch.distributed as dist
 import platform
 
 # Define Working Directories
-grayscale_dir = '../Dataset/Greyscale'
-rgb_dir = '../Dataset/RGB'
+autoencoder_grayscale_dir = '../Dataset/AutoEncoder/Grayscale'
+autoencoder_rgb_dir = '../Dataset/AutoEncoder/RGB'
+lstm_gray_sequences_dir = '../Dataset/LSTM'
 
 # Define Universal Parameters
-image_height = 2000
-image_width = 3000
-batch_size = 2
+image_width = 1280
+image_height = 720
 
 def get_backend():
     system_type = platform.system()
@@ -48,7 +48,7 @@ def main_worker(rank, world_size):
 def main(rank):
     # Initialize Dataset Object (PyTorch Tensors)
     try:
-        dataset = CustomDataset(grayscale_dir, rgb_dir, (image_height, image_width), batch_size)
+        dataset = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, (image_height, image_width))
         if rank == 0:
             print('Importing Dataset Complete.')
     except Exception as e:
@@ -70,7 +70,7 @@ def main(rank):
         print('-'*20) # Makes Output Readable
 
     # Initialize AutoEncoder Model and Import Dataloader (Training, Validation)
-    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split=0.2)
+    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split=0.25, batch_size=16)
     if rank == 0:
         print('AutoEncoder Model Data Imported.')
     model_autoencoder = Grey2RGBAutoEncoder()
@@ -79,10 +79,10 @@ def main(rank):
         print('-'*20) # Makes Output Readable
 
     # Initialize LSTM Model and Import Dataloader (Training, Validation)
-    data_lstm_train, data_lstm_val = dataset.get_lstm_batches(val_split=0.25, sequence_length=2)
+    data_lstm_train, data_lstm_val = dataset.get_lstm_batches(val_split=0.2, sequence_length=30, batch_size=6)
     if rank == 0:
         print('LSTM Model Data Imported.')
-    model_lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(5, 5), num_layers=3, alpha=0.5)
+    model_lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(3, 3), num_layers=3, alpha=0.5)
     if rank == 0:
         print('LSTM Model Initialized.')
         print('-'*20) # Makes Output Readable
@@ -149,7 +149,7 @@ def main(rank):
     ''' 
     # Method-1
     try:
-        epochs = 10
+        epochs = 5
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
         model_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
@@ -165,7 +165,7 @@ def main(rank):
     if rank == 0:
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 10
+        epochs = 5
         if rank == 0:
             print('Method-1 LSTM Training Start')
         model_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
@@ -183,7 +183,7 @@ def main(rank):
 
     # Method-2
     try:
-        epochs = 10
+        epochs = 5
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
         model_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
@@ -205,7 +205,7 @@ def main(rank):
         print("Method-3 AutoEncoder == Method-1 AutoEncoder, No Need To Train Again.")
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 10
+        epochs = 5
         if rank == 0:
             print('Method-3 LSTM Training Start.')
         model_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
