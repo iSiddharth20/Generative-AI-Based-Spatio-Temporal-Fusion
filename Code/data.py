@@ -18,91 +18,84 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Define a custom dataset class
 class CustomDataset(Dataset):
-    def __init__(self, grayscale_dir, rgb_dir, image_size, batch_size, valid_exts=['.tif', '.tiff']):
+    def __init__(self, autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, image_size, valid_exts=['.tif', '.tiff']):
         # Initialize directory paths and parameters
-        self.grayscale_dir = Path(grayscale_dir)  # Directory for grayscale images
-        self.rgb_dir = Path(rgb_dir)  # Directory for RGB images
+        self.grayscale_dir = Path(autoencoder_grayscale_dir)  # Directory for AutoEncoder grayscale images
+        self.rgb_dir = Path(autoencoder_rgb_dir)  # Directory for AutoEncoder RGB images
+        self.lstm_dir = Path(lstm_gray_sequences_dir)  # Directory for LSTM grayscale sequences
         self.image_size = image_size  # Size to which images will be resized
-        self.batch_size = batch_size  # Batch size for training
         self.valid_exts = valid_exts  # Valid file extensions
         # Get list of valid image filenames
-        self.filenames = [f for f in self.grayscale_dir.iterdir() if f.suffix in self.valid_exts]
-        self.length = len(self.filenames)
+        self.autoencoder_filenames = [f for f in self.grayscale_dir.iterdir() if f.suffix in self.valid_exts]
+        self.lstm_filenames = [f for f in self.lstm_dir.iterdir() if f.suffix in self.valid_exts]
+        self.autoencoder_length = len(self.autoencoder_filenames)
+        self.lstm_length = len(self.lstm_filenames)
         # Define transformations: resize and convert to tensor
         self.transform = transforms.Compose([
             transforms.Resize(self.image_size),
             transforms.ToTensor()])
 
     # Return the total number of images
-    def __len__(self):
-        return self.length
+    def __len__(self, lstm=False):
+        return self.lstm_length if lstm else self.autoencoder_length
 
     # Get a single item or a slice from the dataset
-    def __getitem__(self, idx):
-        if isinstance(idx, slice):
-            return [self[i] for i in range(*idx.indices(len(self)))]
+    def __getitem__(self, idx, lstm=False):
         # Get paths for grayscale and RGB images
-        grayscale_path = self.filenames[idx]
+        grayscale_path = self.lstm_filenames[idx] if lstm else self.autoencoder_filenames[idx]
         rgb_path = self.rgb_dir / grayscale_path.name
         # Open images
         try:
             grayscale_img = Image.open(grayscale_path)
-            rgb_img = Image.open(rgb_path)
+            rgb_img = Image.open(rgb_path) if not lstm else None
         except IOError:
             print(f"Error opening images {grayscale_path} or {rgb_path}")
             return None
         # Apply transformations
         grayscale_img = self.transform(grayscale_img)
-        rgb_img = self.transform(rgb_img)
+        if rgb_img is not None:
+            rgb_img = self.transform(rgb_img)
         # Return transformed images
         return grayscale_img, rgb_img
 
     # Get batches for autoencoder training
-    def get_autoencoder_batches(self, val_split):
+    def get_autoencoder_batches(self, val_split, batch_size):
         # Calculate the number of samples to include in the validation set
         val_size = int(val_split * len(self))
         train_size = len(self) - val_size
         # Split the dataset into training and validation sets
         train_dataset, val_dataset = random_split(self, [train_size, val_size])
         # Create dataloaders for the training and validation sets
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size, shuffle=True)
         # Return the training and validation dataloaders
         return train_loader, val_loader
 
-    # Transform a sequence of images to tensors (Functionality for LSTM)
-    def transform_sequence(self, filenames):
-        images = [self.transform(Image.open(f)) for f in filenames]
-        return torch.stack(images) # Stack to form a sequence tensor
-    
     # Get batches for LSTM training
-    def get_lstm_batches(self, val_split, sequence_length, sequence_stride=2):
+    def get_lstm_batches(self, val_split, sequence_length, batch_size):
         assert sequence_length % 2 == 0, "The sequence length must be even."
-        # Compute the total number of sequences that can be formed, given the stride and length
-        sequence_indices = range(0, self.length - sequence_length + 1, sequence_stride)
-        total_sequences = len(sequence_indices)
-        # Divide the sequences into training and validation
-        train_size = int((1.0 - val_split) * total_sequences)
-        train_indices = sequence_indices[:train_size]
-        val_indices = sequence_indices[train_size:]
+        # Create a list of all possible start indices for the sequences
+        sequence_indices = list(range(0, self.__len__(lstm=True), sequence_length))
         # Create dataset with valid sequences only
-        train_dataset = self.create_sequence_pairs(train_indices, sequence_length)
-        val_dataset = self.create_sequence_pairs(val_indices, sequence_length)
-        # Create the data loaders for training and validation datasets
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=False)
-        val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
-        return train_loader, val_loader
-
-    def create_sequence_pairs(self, indices, sequence_length):
-        sequence_pairs = []
-        for start in indices:
+        train_dataset = []
+        val_dataset = []
+        train_end = int((1.0 - val_split) * sequence_length)
+        for start in sequence_indices:
             end = start + sequence_length
             # Make sure we don't go out of bounds
-            if end < self.length:
-                sequence_input = self.transform_sequence(self.filenames[start:end])
-                sequence_target = self.transform_sequence(self.filenames[start + 1:end + 1])
-                sequence_pairs.append((sequence_input, sequence_target))
-            else:
-                # Handle the last sequence by either discarding or padding
-                pass  # Choose to either discard (do nothing) or pad the sequence
-        return sequence_pairs
+            if end <= self.__len__(lstm=True):
+                sequence = self.transform_sequence(self.lstm_filenames[start:end], lstm=True)
+                sequence_input_train = sequence[:train_end:2]  # Odd-indexed images for training
+                sequence_target_train = sequence[1:train_end:2]  # Even-indexed images for training
+                sequence_input_val = sequence[train_end::2]  # Odd-indexed images for validation
+                sequence_target_val = sequence[train_end+1::2]  # Even-indexed images for validation
+                train_dataset.append((sequence_input_train, sequence_target_train))
+                val_dataset.append((sequence_input_val, sequence_target_val))
+        # Create the data loaders for training and validation datasets
+        train_loader = DataLoader(train_dataset, batch_size, shuffle=False)
+        val_loader = DataLoader(val_dataset, batch_size, shuffle=False)
+        return train_loader, val_loader
+
+    def transform_sequence(self, filenames, lstm=False):
+        images = [self.transform(Image.open(f if not lstm else self.lstm_dir / f.name)) for f in filenames]
+        return torch.stack(images) # Stack to form a sequence tensor
