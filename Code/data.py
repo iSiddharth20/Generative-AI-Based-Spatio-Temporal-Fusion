@@ -11,7 +11,7 @@ from pathlib import Path
 from torch.utils.data import DataLoader, Dataset, random_split
 import torchvision.transforms as transforms
 import torch
-import os
+from torch.utils.data.distributed import DistributedSampler
 
 # Allow loading of truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -66,8 +66,10 @@ class CustomDataset(Dataset):
         # Split the dataset into training and validation sets
         train_dataset, val_dataset = random_split(self, [train_size, val_size])
         # Create dataloaders for the training and validation sets
-        train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size, shuffle=True)
+        train_sampler = DistributedSampler(train_dataset)
+        val_sampler = DistributedSampler(val_dataset)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, sampler=train_sampler, shuffle=False)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, pin_memory=True, sampler=val_sampler, shuffle=False)
         # Return the training and validation dataloaders
         return train_loader, val_loader
 
@@ -92,8 +94,10 @@ class CustomDataset(Dataset):
                 train_dataset.append((sequence_input_train, sequence_target_train))
                 val_dataset.append((sequence_input_val, sequence_target_val))
         # Create the data loaders for training and validation datasets
-        train_loader = DataLoader(train_dataset, batch_size, shuffle=False)
-        val_loader = DataLoader(val_dataset, batch_size, shuffle=False)
+        train_sampler = DistributedSampler(train_dataset)
+        val_sampler = DistributedSampler(val_dataset)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, sampler=train_sampler, shuffle=False)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, pin_memory=True, sampler=val_sampler, shuffle=False)
         return train_loader, val_loader
 
     def transform_sequence(self, filenames, lstm=False):
