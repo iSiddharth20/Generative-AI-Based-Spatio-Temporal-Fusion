@@ -43,7 +43,9 @@ class Trainer():
         if torch.cuda.device_count() > 0 and self.rank == 0:
             gpu_names = ', '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
             print("\tGPUs being used for Training : ",gpu_names)
-        best_val_loss = float('inf')  
+        best_val_loss = float('inf')
+        best_epoch = -1
+        best_train_loss = float('inf')
         for epoch in range(epochs):
             self.model.train()  # Set the Model to Training Mode
             # Training Loop
@@ -66,9 +68,11 @@ class Trainer():
             # If the current validation loss is lower than the best validation loss, save the model
             if val_loss < best_val_loss:
                 best_val_loss = val_loss  # Update the best validation loss
+                best_epoch = epoch+1
+                best_train_loss = loss.item()
                 self.save_model()  # Save the model
-        # Return the Trained Model
-        return self.model
+        # Return the Trained Model and the best epoch's details
+        return self.model, (best_epoch, best_train_loss, best_val_loss)
     
     def train_lstm(self, epochs, train_loader, val_loader):
         # Print Names of All Available GPUs (if any) to Train the Model 
@@ -76,6 +80,8 @@ class Trainer():
             gpu_names = ', '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
             print("\tGPUs being used for Training : ",gpu_names)
         best_val_loss = float('inf')
+        best_epoch = -1
+        best_train_loss = float('inf')
         for epoch in range(epochs):
             self.model.train()  # Set the model to training mode
             # Training loop
@@ -101,6 +107,8 @@ class Trainer():
             # Model saving based on validation loss
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
+                best_epoch = epoch+1
+                best_train_loss = loss.item()
                 self.save_model()
-        # Return the trained model
-        return self.model
+        # Return the trained model and the best epoch's details
+        return self.model, (best_epoch, best_train_loss, best_val_loss)
