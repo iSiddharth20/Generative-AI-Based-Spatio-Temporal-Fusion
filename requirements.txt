@@ -1,6 +1,6 @@
 numpy
 pytorch_ssim
 Pillow
-matploltlib
+matplotlib
 scikit-image
 pytorch-msssim
