@@ -17,6 +17,7 @@ import torch
 import torch.multiprocessing as mp
 import torch.distributed as dist
 import platform
+import time
 
 # Define Working Directories
 autoencoder_grayscale_dir = '../Dataset/AutoEncoder/Grayscale'
@@ -24,8 +25,8 @@ autoencoder_rgb_dir = '../Dataset/AutoEncoder/RGB'
 lstm_gray_sequences_dir = '../Dataset/LSTM'
 
 # Define Universal Parameters
-image_width = 1600
-image_height = 900
+image_width = 1280
+image_height = 720
 
 def get_backend():
     system_type = platform.system()
@@ -95,7 +96,7 @@ def main(rank):
     model_save_path_ae = '../Models/Method1/model_autoencoder_m1.pth'
     trainer_autoencoder_baseline = Trainer(model=model_autoencoder, 
                                            loss_function=loss_mse, 
-                                           optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), 
+                                           optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.0001), 
                                            model_save_path=model_save_path_ae, 
                                            rank=rank)
     if rank == 0:
@@ -103,7 +104,7 @@ def main(rank):
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
     trainer_lstm_baseline = Trainer(model=model_lstm, 
                                     loss_function=loss_mse, 
-                                    optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), 
+                                    optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.0001), 
                                     model_save_path=model_save_path_lstm, 
                                     rank=rank)
     if rank == 0:
@@ -115,7 +116,7 @@ def main(rank):
     model_save_path_ae = '../Models/Method2/model_autoencoder_m2.pth'
     trainer_autoencoder_m2 = Trainer(model=model_autoencoder, 
                                      loss_function=loss_mep, 
-                                     optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.001), 
+                                     optimizer=torch.optim.Adam(model_autoencoder.parameters(), lr=0.0001), 
                                      model_save_path=model_save_path_ae, 
                                      rank=rank)
     if rank == 0:
@@ -130,7 +131,7 @@ def main(rank):
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
     trainer_lstm_m3 = Trainer(model=model_lstm, 
                               loss_function=loss_ssim, 
-                              optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.001), 
+                              optimizer=torch.optim.Adam(model_lstm.parameters(), lr=0.0001), 
                               model_save_path=model_save_path_lstm, 
                               rank=rank)
     if rank == 0:
@@ -149,9 +150,10 @@ def main(rank):
     ''' 
     # Method-1
     try:
-        epochs = 5
+        epochs = 10
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
+            start_time = time.time()
         model_autoencoder_m1, stats_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
         if rank == 0:
             print('Method-1 AutoEncoder Training Complete.')
@@ -161,13 +163,16 @@ def main(rank):
         traceback.print_exc()
     finally:
         if rank == 0:
+            end_time = time.time()
+            print(f"Execution time: {end_time - start_time} seconds")
             trainer_autoencoder_baseline.cleanup_ddp()
     if rank == 0:
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 5
+        epochs = 10
         if rank == 0:
             print('Method-1 LSTM Training Start')
+            start_time = time.time()
         model_lstm_m1, stats_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
         if rank == 0:
             print('Method-1 LSTM Training Complete.')
@@ -177,15 +182,18 @@ def main(rank):
         traceback.print_exc()
     finally:
         if rank == 0:
+            end_time = time.time()
+            print(f"Execution time: {end_time - start_time} seconds")
             trainer_lstm_baseline.cleanup_ddp()
     if rank == 0:
         print('-'*20) # Makes Output Readable
 
     # Method-2
     try:
-        epochs = 5
+        epochs = 10
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
+            start_time = time.time()
         model_autoencoder_m2, stats_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
         if rank == 0:
             print('Method-2 AutoEncoder Training Complete.')
@@ -194,7 +202,10 @@ def main(rank):
             print(f"Method-2 AutoEncoder Training Error : \n{e}")
         traceback.print_exc()
     finally:
-        trainer_autoencoder_m2.cleanup_ddp()
+        if rank == 0:
+            end_time = time.time()
+            print(f"Execution time: {end_time - start_time} seconds")
+            trainer_autoencoder_m2.cleanup_ddp()
     if rank == 0:
         print('-'*10) # Makes Output Readable
         print("Method-2 LSTM == Method-1 LSTM, No Need To Train Again.")
@@ -205,9 +216,10 @@ def main(rank):
         print("Method-3 AutoEncoder == Method-1 AutoEncoder, No Need To Train Again.")
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 5
+        epochs = 10
         if rank == 0:
             print('Method-3 LSTM Training Start.')
+            start_time = time.time()
         model_lstm_m3, stats_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
         if rank == 0:
             print('Method-3 LSTM Training Complete.')
@@ -216,7 +228,10 @@ def main(rank):
             print(f"Method-3 LSTM Training Error : \n{e}")
         traceback.print_exc()
     finally:
-        trainer_lstm_m3.cleanup_ddp()
+        if rank == 0:
+            end_time = time.time()
+            print(f"Execution time: {end_time - start_time} seconds")
+            trainer_lstm_m3.cleanup_ddp()
     if rank == 0:
         print('-'*20) # Makes Output Readable
 
@@ -242,24 +257,16 @@ def main(rank):
         print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*10) # Makes Output Readable
         print('Best Stats for Method-2 LSTM == Best Stats for Method-1 LSTM:')
-        epoch_num, train_loss, val_loss = stats_lstm_m1
-        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*20) # Makes Output Readable
         print('Best Stats for Method-3 AutoEncoder == Best Stats for Method-1 AutoEncoder:')
-        epoch_num, train_loss, val_loss = stats_autoencoder_m1
-        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*10) # Makes Output Readable
         print('Best Stats for Method-3 LSTM :')
         epoch_num, train_loss, val_loss = stats_lstm_m3
         print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*20) # Makes Output Readable
         print('Best Stats for Method-4 AutoEncoder == Best Stats for Method-2 AutoEncoder:')
-        epoch_num, train_loss, val_loss = stats_autoencoder_m2
-        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*10) # Makes Output Readable
         print('Best Stats for Method-4 LSTM == Best Stats for Method-3 LSTM:')
-        epoch_num, train_loss, val_loss = stats_lstm_m3
-        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*20) # Makes Output Readable
 
 
