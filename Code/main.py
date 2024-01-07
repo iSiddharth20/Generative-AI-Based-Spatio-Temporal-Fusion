@@ -24,8 +24,8 @@ autoencoder_rgb_dir = '../Dataset/AutoEncoder/RGB'
 lstm_gray_sequences_dir = '../Dataset/LSTM'
 
 # Define Universal Parameters
-image_width = 1280
-image_height = 720
+image_width = 1600
+image_height = 900
 
 def get_backend():
     system_type = platform.system()
@@ -152,7 +152,7 @@ def main(rank):
         epochs = 5
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
-        model_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        model_autoencoder_m1, stats_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
         if rank == 0:
             print('Method-1 AutoEncoder Training Complete.')
     except Exception as e:
@@ -168,7 +168,7 @@ def main(rank):
         epochs = 5
         if rank == 0:
             print('Method-1 LSTM Training Start')
-        model_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
+        model_lstm_m1, stats_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
         if rank == 0:
             print('Method-1 LSTM Training Complete.')
     except Exception as e:
@@ -186,7 +186,7 @@ def main(rank):
         epochs = 5
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
-        model_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        model_autoencoder_m2, stats_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
         if rank == 0:
             print('Method-2 AutoEncoder Training Complete.')
     except Exception as e:
@@ -208,7 +208,7 @@ def main(rank):
         epochs = 5
         if rank == 0:
             print('Method-3 LSTM Training Start.')
-        model_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
+        model_lstm_m3, stats_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
         if rank == 0:
             print('Method-3 LSTM Training Complete.')
     except Exception as e:
@@ -225,6 +225,33 @@ def main(rank):
         print("Method-4 AutoEncoder == Method-2 AutoEncoder, No Need To Train Again.")
         print('-'*10) # Makes Output Readable
         print("Method-4 LSTM == Method-3 LSTM, No Need To Train Again.")
+        print('-'*20) # Makes Output Readable
+
+    # Print Stats of Each Model 
+    if rank == 0:
+        print('Best Stats for Method-1 AutoEncoder :')
+        epoch_num, train_loss, val_loss = stats_autoencoder_m1
+        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
+        print('-'*10) # Makes Output Readable
+        print('Best Stats for Method-1 LSTM :')
+        epoch_num, train_loss, val_loss = stats_lstm_m1
+        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
+        print('-'*20) # Makes Output Readable
+        print('Best Stats for Method-2 AutoEncoder :')
+        epoch_num, train_loss, val_loss = stats_autoencoder_m2
+        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
+        print('-'*10) # Makes Output Readable
+        print('Best Stats for Method-2 LSTM == Best Stats for Method-1 LSTM:')
+        epoch_num, train_loss, val_loss = stats_lstm_m1
+        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
+        print('-'*20) # Makes Output Readable
+        print('Best Stats for Method-3 AutoEncoder == Best Stats for Method-1 AutoEncoder:')
+        epoch_num, train_loss, val_loss = stats_autoencoder_m1
+        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
+        print('-'*10) # Makes Output Readable
+        print('Best Stats for Method-3 LSTM :')
+        epoch_num, train_loss, val_loss = stats_lstm_m3
+        print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*20) # Makes Output Readable
 
 
