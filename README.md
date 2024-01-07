@@ -9,6 +9,8 @@ Exploring the forefront of generative AI to enhance video quality through advanc
 ## Introduction
 This project is a novel approach to enhance video resolution both spatially and temporally using generative AI techniques. By leveraging Auto-Encoders and LSTM Networks, the project aims to interpolate high-temporal-resolution grayscale images and colorize them by learning from a corresponding set of RGB images, ultimately achieving high-fidelity video super-resolution.
 
+#### Checkout the Latest Stable Release [Here](https://github.com/iSiddharth20/Generative-AI-Based-Spatio-Temporal-Fusion/releases)
+
 
 ## Research Objective
 The main goals of the project are:
