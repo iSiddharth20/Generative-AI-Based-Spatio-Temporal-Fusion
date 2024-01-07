@@ -24,7 +24,6 @@ Here's a visual representation of the data transformation:
 
 - [Code Explanation](CodeExplanation.md) 
 - [Issue Tracker](https://github.com/iSiddharth20/Spatio-Temporal-Fusion-in-Remote-Sensing/issues)
-- [Dataset Access](https://www.kaggle.com/datasets/isiddharth/spatio-temporal-data-of-moon-rise-in-raw-and-tif)
 
 ## Contributions Welcome!
 Your interest in contributing to the project is highly respected. Aiming for collaborative excellence, your insights, code improvements, and innovative ideas are highly appreciated. Make sure to check [Contributing Guidelines](CONTRIBUTING.md) for more information on how you can become an integral part of this project.
