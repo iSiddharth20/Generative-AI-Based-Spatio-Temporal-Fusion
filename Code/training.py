@@ -57,7 +57,7 @@ class Trainer():
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
                 loss.backward()  # Backward Pass
                 self.optimizer.step()  # Update Model Parameters
-                self.scheduler.step()  # Update Learning Rate
+            self.scheduler.step()  # Update Learning Rate
             # Validation Loss Calculation
             self.model.eval()  # Set the Model to Evaluation Mode
             with torch.no_grad():  # Disable gradient computation
@@ -95,7 +95,7 @@ class Trainer():
                 loss = self.loss_function(output_sequence, target_sequence)  # Compute loss
                 loss.backward()  # Backward pass
                 self.optimizer.step()  # Update parameters
-                self.scheduler.step()  # Update Learning Rate
+            self.scheduler.step()  # Update Learning Rate
             # Validation loop
             self.model.eval()  # Set the model to evaluation mode
             with torch.no_grad():  # Disable gradient computation
