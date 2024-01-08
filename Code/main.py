@@ -94,8 +94,8 @@ def main(rank):
     # Method 1 : Baseline : Mean Squared Error Loss for AutoEncoder and LSTM
     os.makedirs('../Models/Method1', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method1/model_autoencoder_m1.pth'
-    optimizer = torch.optim.Adam(model_autoencoder.parameters(), lr=0.01)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    optimizer = torch.optim.SGD(model_autoencoder.parameters(), lr=0.1, momentum=0.9)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     trainer_autoencoder_baseline = Trainer(model=model_autoencoder, 
                                            loss_function=loss_mse, 
                                            optimizer=optimizer,
@@ -105,8 +105,8 @@ def main(rank):
     if rank == 0:
         print('Method-1 AutoEncoder Trainer Initialized.')
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
-    optimizer = torch.optim.Adam(model_lstm.parameters(), lr=0.01)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    optimizer = torch.optim.SGD(model_lstm.parameters(), lr=0.1, momentum=0.9)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     trainer_lstm_baseline = Trainer(model=model_lstm, 
                                     loss_function=loss_mse, 
                                     optimizer=optimizer,
@@ -120,8 +120,8 @@ def main(rank):
     # Method 2 : Composite Loss (MSE + MaxEnt) for AutoEncoder and Mean Squared Error Loss for LSTM
     os.makedirs('../Models/Method2', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method2/model_autoencoder_m2.pth'
-    optimizer = torch.optim.Adam(model_autoencoder.parameters(), lr=0.01)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    optimizer = torch.optim.SGD(model_autoencoder.parameters(), lr=0.1, momentum=0.9)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     trainer_autoencoder_m2 = Trainer(model=model_autoencoder, 
                                      loss_function=loss_mep, 
                                      optimizer=optimizer,
@@ -138,8 +138,8 @@ def main(rank):
     if rank == 0:
         print('Method-3 AutoEncoder == Method-1 AutoEncoder')
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
-    optimizer = torch.optim.Adam(model_lstm.parameters(), lr=0.01)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    optimizer = torch.optim.SGD(model_lstm.parameters(), lr=0.1, momentum=0.9)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
     trainer_lstm_m3 = Trainer(model=model_lstm, 
                               loss_function=loss_ssim, 
                               optimizer=optimizer,
