@@ -68,8 +68,8 @@ class CustomDataset(Dataset):
         # Create dataloaders for the training and validation sets
         train_sampler = DistributedSampler(train_dataset)
         val_sampler = DistributedSampler(val_dataset)
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, sampler=train_sampler, shuffle=False)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, pin_memory=True, sampler=val_sampler, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, sampler=train_sampler)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, pin_memory=True, sampler=val_sampler)
         # Return the training and validation dataloaders
         return train_loader, val_loader
 
@@ -96,8 +96,8 @@ class CustomDataset(Dataset):
         # Create the data loaders for training and validation datasets
         train_sampler = DistributedSampler(train_dataset)
         val_sampler = DistributedSampler(val_dataset)
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, sampler=train_sampler, shuffle=False)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, pin_memory=True, sampler=val_sampler, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, sampler=train_sampler)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, pin_memory=True, sampler=val_sampler)
         return train_loader, val_loader
 
     def transform_sequence(self, filenames, lstm=False):
