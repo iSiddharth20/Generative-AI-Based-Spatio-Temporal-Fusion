@@ -66,7 +66,8 @@ class Trainer():
                 val_loss /= len(val_loader)  # Compute Average Validation Loss
             # Print epochs and losses
             if self.rank == 0:
-                print(f'\tAutoEncoder Epoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss}')
+                lr = self.optimizer.param_groups[0]['lr']
+                print(f'\tEpoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss} --- Learning Rate: {lr}')
             # If the current validation loss is lower than the best validation loss, save the model
             if val_loss < best_val_loss:
                 best_val_loss = val_loss  # Update the best validation loss
@@ -106,7 +107,8 @@ class Trainer():
                 val_loss /= len(val_loader)  # Average validation loss
             # Print epochs and losses
             if self.rank == 0:
-                print(f'\tLSTM Epoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss}')
+                lr = self.optimizer.param_groups[0]['lr']
+                print(f'\tEpoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss} --- Learning Rate: {lr}')
             # Model saving based on validation loss
             if val_loss < best_val_loss:
                 best_val_loss = val_loss

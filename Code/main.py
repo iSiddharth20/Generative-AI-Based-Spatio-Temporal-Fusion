@@ -162,7 +162,7 @@ def main(rank):
     ''' 
     # Method-1
     try:
-        epochs = 10
+        epochs = 50
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
             start_time = time.time()
@@ -181,7 +181,7 @@ def main(rank):
     if rank == 0:
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 10
+        epochs = 50
         if rank == 0:
             print('Method-1 LSTM Training Start')
             start_time = time.time()
@@ -202,7 +202,7 @@ def main(rank):
 
     # Method-2
     try:
-        epochs = 10
+        epochs = 50
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
             start_time = time.time()
@@ -228,7 +228,7 @@ def main(rank):
         print("Method-3 AutoEncoder == Method-1 AutoEncoder, No Need To Train Again.")
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 10
+        epochs = 50
         if rank == 0:
             print('Method-3 LSTM Training Start.')
             start_time = time.time()
