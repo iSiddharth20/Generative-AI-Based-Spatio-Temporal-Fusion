@@ -276,9 +276,9 @@ def main(rank):
         epoch_num, train_loss, val_loss = stats_lstm_m3
         print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*20) # Makes Output Readable
-        print('Best Stats for Method-4 AutoEncoder == Best Stats for Method-2 AutoEncoder:')
+        print('Best Stats for Method-4 AutoEncoder == Best Stats for Method-2 AutoEncoder')
         print('-'*10) # Makes Output Readable
-        print('Best Stats for Method-4 LSTM == Best Stats for Method-3 LSTM:')
+        print('Best Stats for Method-4 LSTM == Best Stats for Method-3 LSTM')
         print('-'*20) # Makes Output Readable
 
 

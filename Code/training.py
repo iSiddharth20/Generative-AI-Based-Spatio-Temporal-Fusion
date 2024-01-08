@@ -67,7 +67,7 @@ class Trainer():
             # Print epochs and losses
             if self.rank == 0:
                 lr = self.optimizer.param_groups[0]['lr']
-                print(f'\tEpoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss} --- Learning Rate: {lr}')
+                print(f'\tEpoch {epoch+1}/{epochs} --- Training Loss: {round(loss.item(),10)} --- Validation Loss: {round(val_loss,10)} --- Learning Rate: {round(lr,8)}')
             # If the current validation loss is lower than the best validation loss, save the model
             if val_loss < best_val_loss:
                 best_val_loss = val_loss  # Update the best validation loss
@@ -108,7 +108,7 @@ class Trainer():
             # Print epochs and losses
             if self.rank == 0:
                 lr = self.optimizer.param_groups[0]['lr']
-                print(f'\tEpoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss} --- Learning Rate: {lr}')
+                print(f'\tEpoch {epoch+1}/{epochs} --- Training Loss: {round(loss.item(),10)} --- Validation Loss: {round(val_loss,10)} --- Learning Rate: {round(lr,8)}')
             # Model saving based on validation loss
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
