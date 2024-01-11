@@ -61,6 +61,7 @@ def main(rank):
         dataset_ae = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, resolutions[i])
         dataset_lstm = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, resolutions[i], for_lstm=True)
         if rank == 0:
+            print('-'*20) # Makes Output Readable
             print('Importing Dataset Complete.')
     except Exception as e:
         if rank == 0:
@@ -70,7 +71,7 @@ def main(rank):
     # Import Loss Functions
     try:
         loss_mse = LossMSE() # Mean Squared Error Loss
-        loss_mep = LossMEP(alpha=0.1) # Maximum Entropy Loss
+        loss_mep = LossMEP(alpha=0.15) # Maximum Entropy Loss
         loss_ssim = SSIMLoss(alpha=0.1) # Structural Similarity Index Measure Loss
         if rank == 0:
             print('Importing Loss Functions Complete.')
@@ -266,29 +267,21 @@ def main(rank):
 
     # Print Stats of Each Model 
     if rank == 0:
-        print('Best Stats for Method-1 AutoEncoder :')
+        print('Best Stats for Baseline AutoEncoder :')
         epoch_num, train_loss, val_loss = stats_autoencoder_m1
         print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
-        print('-'*10) # Makes Output Readable
-        print('Best Stats for Method-1 LSTM :')
+        print('-'*20) # Makes Output Readable
+        print('Best Stats for Baseline LSTM :')
         epoch_num, train_loss, val_loss = stats_lstm_m1
         print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
         print('-'*20) # Makes Output Readable
         print('Best Stats for Method-2 AutoEncoder :')
         epoch_num, train_loss, val_loss = stats_autoencoder_m2
         print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
-        print('-'*10) # Makes Output Readable
-        print('Best Stats for Method-2 LSTM == Best Stats for Method-1 LSTM:')
         print('-'*20) # Makes Output Readable
-        print('Best Stats for Method-3 AutoEncoder == Best Stats for Method-1 AutoEncoder:')
-        print('-'*10) # Makes Output Readable
         print('Best Stats for Method-3 LSTM :')
         epoch_num, train_loss, val_loss = stats_lstm_m3
         print(f'\tEpoch: {epoch_num} --- Training Loss: {train_loss} --- Validation Loss: {val_loss}')
-        print('-'*20) # Makes Output Readable
-        print('Best Stats for Method-4 AutoEncoder == Best Stats for Method-2 AutoEncoder')
-        print('-'*10) # Makes Output Readable
-        print('Best Stats for Method-4 LSTM == Best Stats for Method-3 LSTM')
         print('-'*20) # Makes Output Readable
 
 
