@@ -25,7 +25,7 @@ autoencoder_rgb_dir = '../Dataset/AutoEncoder/RGB'
 lstm_gray_sequences_dir = '../Dataset/LSTM'
 
 # Define Universal Parameters
-i = 2 # resolutions[i] to use in the Proejct as Image Size
+i = 1 # resolutions[i] to use in the Proejct as Image Size
 resolutions = [
     (270, 480),
     (360, 640),
