@@ -177,7 +177,8 @@ def main(rank):
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
             start_time = time.time()
-        stats_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        mix_precision = True
+        stats_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val, mix_precision)
         if rank == 0:
             print('Method-1 AutoEncoder Training Complete.')
     except Exception as e:
@@ -196,7 +197,8 @@ def main(rank):
         if rank == 0:
             print('Method-1 LSTM Training Start')
             start_time = time.time()
-        stats_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
+        mix_precision = True
+        stats_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val, mix_precision)
         if rank == 0:
             print('Method-1 LSTM Training Complete.')
     except Exception as e:
@@ -217,7 +219,8 @@ def main(rank):
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
             start_time = time.time()
-        stats_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        mix_precision=True
+        stats_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val, mix_precision)
         if rank == 0:
             print('Method-2 AutoEncoder Training Complete.')
     except Exception as e:
@@ -243,7 +246,8 @@ def main(rank):
         if rank == 0:
             print('Method-3 LSTM Training Start.')
             start_time = time.time()
-        stats_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
+        mix_precision = True
+        stats_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val, mix_precision)
         if rank == 0:
             print('Method-3 LSTM Training Complete.')
     except Exception as e:

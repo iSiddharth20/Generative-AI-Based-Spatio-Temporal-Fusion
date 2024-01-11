@@ -42,7 +42,7 @@ class Trainer():
             # Save the model
             torch.save(self.model.state_dict(), self.model_save_path)
 
-    def train_autoencoder(self, epochs, train_loader, val_loader):
+    def train_autoencoder(self, epochs, train_loader, val_loader, mix_precision=False):
         # Print Names of All Available GPUs (if any) to Train the Model 
         if torch.cuda.device_count() > 0 and self.rank == 0:
             gpu_names = ', '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
@@ -56,14 +56,20 @@ class Trainer():
             for input, target in train_loader:  # Input - Grayscale Image, Target - RGB Image
                 input, target = input.to(self.device), target.to(self.device)
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
-                # Use autocast for mixed precision training
-                with autocast():
+                '''Mixed Precision Training'''
+                if mix_precision==True:
+                    with autocast():
+                        output = self.model(input)  # Forward Pass
+                        loss = self.loss_function(output, target)  # Compute Training Loss
+                    self.scaler.scale(loss).backward()  # Backward Pass
+                    self.scaler.step(self.optimizer)  # Update Model Parameters
+                    self.scaler.update()
+                else:
+                    '''Regular Training'''
                     output = self.model(input)  # Forward Pass
                     loss = self.loss_function(output, target)  # Compute Training Loss
-                # Use GradScaler for mixed precision training
-                self.scaler.scale(loss).backward()  # Backward Pass
-                self.scaler.step(self.optimizer)  # Update Model Parameters
-                self.scaler.update()
+                    loss.backward()  # Backward Pass
+                    self.optimizer.step()  # Update Model Parameters
                 torch.cuda.empty_cache()  # Free up memory
             self.scheduler.step()  # Update Learning Rate
             # Validation Loss Calculation
@@ -85,7 +91,7 @@ class Trainer():
         # Return the best epoch's details
         return (best_epoch, best_train_loss, best_val_loss)
     
-    def train_lstm(self, epochs, train_loader, val_loader):
+    def train_lstm(self, epochs, train_loader, val_loader,mix_precision=False):
         # Print Names of All Available GPUs (if any) to Train the Model 
         if torch.cuda.device_count() > 0 and self.rank == 0:
             gpu_names = ', '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
@@ -99,14 +105,20 @@ class Trainer():
             for input_sequence, target_sequence in train_loader:
                 input_sequence, target_sequence = input_sequence.to(self.device), target_sequence.to(self.device)
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
-                # Use autocast for mixed precision training
-                with autocast():
-                    output_sequence, _ = self.model(input_sequence)  # Forward pass, ignore the second output (hidden state tuple)
-                    loss = self.loss_function(output_sequence, target_sequence) # Compute Training Loss
-                # Use GradScaler for mixed precision training
-                self.scaler.scale(loss).backward()  # Backward Pass
-                self.scaler.step(self.optimizer)  # Update Model Parameters
-                self.scaler.update()
+                '''Mixed Precision Training'''
+                if mix_precision==True:
+                    with autocast():
+                        output_sequence, _  = self.model(input_sequence)  # Forward Pass
+                        loss = self.loss_function(output_sequence, target_sequence)  # Compute Training Loss
+                    self.scaler.scale(loss).backward()  # Backward Pass
+                    self.scaler.step(self.optimizer)  # Update Model Parameters
+                    self.scaler.update()
+                else:
+                    '''Regular Training'''
+                    output_sequence, _ = self.model(input_sequence)  # Forward Pass
+                    loss = self.loss_function(output_sequence, target_sequence)  # Compute Training Loss
+                    loss.backward()  # Backward Pass
+                    self.optimizer.step()  # Update Model Parameters
                 torch.cuda.empty_cache()  # Free up memory
             self.scheduler.step()  # Update Learning Rate
             # Validation loop
