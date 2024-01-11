@@ -15,7 +15,7 @@ import torch.distributed as dist
 
 # Define Training Class
 class Trainer():
-    def __init__(self, model, loss_function, optimizer=None, model_save_path=None, rank=None):
+    def __init__(self, model, loss_function, optimizer=None, model_save_path=None, rank=None, lr_scheduler=None):
         self.rank = rank # Rank of the current process
         self.device = torch.device(f'cuda:{rank}' if torch.cuda.is_available() else 'cpu')
         self.model = model.to(self.device)
@@ -23,6 +23,7 @@ class Trainer():
         self.loss_function = loss_function
         # Define the optimizer
         self.optimizer = optimizer if optimizer is not None else torch.optim.Adam(self.model.parameters(), lr=0.001)
+        self.scheduler = lr_scheduler if lr_scheduler is not None else torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
         # Wrap model with DDP
         if torch.cuda.device_count() > 1 and rank is not None:
             self.model = DDP(self.model, device_ids=[rank], find_unused_parameters=True)
@@ -43,7 +44,9 @@ class Trainer():
         if torch.cuda.device_count() > 0 and self.rank == 0:
             gpu_names = ', '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
             print("\tGPUs being used for Training : ",gpu_names)
-        best_val_loss = float('inf')  
+        best_val_loss = float('inf')
+        best_epoch = -1
+        best_train_loss = float('inf')
         for epoch in range(epochs):
             self.model.train()  # Set the Model to Training Mode
             # Training Loop
@@ -54,6 +57,7 @@ class Trainer():
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
                 loss.backward()  # Backward Pass
                 self.optimizer.step()  # Update Model Parameters
+            self.scheduler.step()  # Update Learning Rate
             # Validation Loss Calculation
             self.model.eval()  # Set the Model to Evaluation Mode
             with torch.no_grad():  # Disable gradient computation
@@ -62,13 +66,16 @@ class Trainer():
                 val_loss /= len(val_loader)  # Compute Average Validation Loss
             # Print epochs and losses
             if self.rank == 0:
-                print(f'\tAutoEncoder Epoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss}')
+                lr = self.optimizer.param_groups[0]['lr']
+                print(f'\tEpoch {epoch+1}/{epochs} --- Training Loss: {round(loss.item(),10)} --- Validation Loss: {round(val_loss,10)} --- Learning Rate: {round(lr,8)}')
             # If the current validation loss is lower than the best validation loss, save the model
             if val_loss < best_val_loss:
                 best_val_loss = val_loss  # Update the best validation loss
+                best_epoch = epoch+1
+                best_train_loss = loss.item()
                 self.save_model()  # Save the model
-        # Return the Trained Model
-        return self.model
+        # Return the Trained Model and the best epoch's details
+        return self.model, (best_epoch, best_train_loss, best_val_loss)
     
     def train_lstm(self, epochs, train_loader, val_loader):
         # Print Names of All Available GPUs (if any) to Train the Model 
@@ -76,6 +83,8 @@ class Trainer():
             gpu_names = ', '.join([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])
             print("\tGPUs being used for Training : ",gpu_names)
         best_val_loss = float('inf')
+        best_epoch = -1
+        best_train_loss = float('inf')
         for epoch in range(epochs):
             self.model.train()  # Set the model to training mode
             # Training loop
@@ -86,6 +95,7 @@ class Trainer():
                 loss = self.loss_function(output_sequence, target_sequence)  # Compute loss
                 loss.backward()  # Backward pass
                 self.optimizer.step()  # Update parameters
+            self.scheduler.step()  # Update Learning Rate
             # Validation loop
             self.model.eval()  # Set the model to evaluation mode
             with torch.no_grad():  # Disable gradient computation
@@ -97,10 +107,13 @@ class Trainer():
                 val_loss /= len(val_loader)  # Average validation loss
             # Print epochs and losses
             if self.rank == 0:
-                print(f'\tLSTM Epoch {epoch+1}/{epochs} --- Training Loss: {loss.item()} --- Validation Loss: {val_loss}')
+                lr = self.optimizer.param_groups[0]['lr']
+                print(f'\tEpoch {epoch+1}/{epochs} --- Training Loss: {round(loss.item(),10)} --- Validation Loss: {round(val_loss,10)} --- Learning Rate: {round(lr,8)}')
             # Model saving based on validation loss
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
+                best_epoch = epoch+1
+                best_train_loss = loss.item()
                 self.save_model()
-        # Return the trained model
-        return self.model
+        # Return the trained model and the best epoch's details
+        return self.model, (best_epoch, best_train_loss, best_val_loss)

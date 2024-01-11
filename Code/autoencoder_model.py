@@ -16,9 +16,9 @@ class Grey2RGBAutoEncoder(nn.Module):
     def __init__(self):  
         super(Grey2RGBAutoEncoder, self).__init__()  
         # Define the Encoder
-        self.encoder = self._make_layers([1, 3, 6, 12, 24])
+        self.encoder = self._make_layers([1, 4, 8, 16, 32])
         # Define the Decoder
-        self.decoder = self._make_layers([24, 12, 6, 3], decoder=True)
+        self.decoder = self._make_layers([32, 16, 8, 4, 3], decoder=True)
 
     # Helper function to create the encoder or decoder layers.
     def _make_layers(self, channels, decoder=False):
@@ -26,12 +26,10 @@ class Grey2RGBAutoEncoder(nn.Module):
         for i in range(len(channels) - 1):
             if decoder:
                 layers += [nn.ConvTranspose2d(channels[i], channels[i+1], kernel_size=3, stride=1, padding=1),
-                           nn.BatchNorm2d(channels[i+1]),
-                           nn.LeakyReLU(inplace=True)]
+                           nn.ReLU(inplace=True)]
             else:
                 layers += [nn.Conv2d(channels[i], channels[i+1], kernel_size=3, stride=1, padding=1),
-                           nn.BatchNorm2d(channels[i+1]),
-                           nn.LeakyReLU(inplace=True)]
+                           nn.ReLU(inplace=True)]
         if decoder:
             layers[-1] = nn.Sigmoid() 
         return nn.Sequential(*layers)
