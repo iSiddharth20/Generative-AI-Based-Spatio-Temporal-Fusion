@@ -60,8 +60,8 @@ def main(rank):
     # Import Loss Functions
     try:
         loss_mse = LossMSE() # Mean Squared Error Loss
-        loss_mep = LossMEP(alpha=0.2) # Maximum Entropy Loss
-        loss_ssim = SSIMLoss(alpha=0.2) # Structural Similarity Index Measure Loss
+        loss_mep = LossMEP(alpha=0.1) # Maximum Entropy Loss
+        loss_ssim = SSIMLoss(alpha=0.1) # Structural Similarity Index Measure Loss
         if rank == 0:
             print('Importing Loss Functions Complete.')
     except Exception as e:
@@ -71,7 +71,7 @@ def main(rank):
         print('-'*20) # Makes Output Readable
 
     # Initialize AutoEncoder Model and Import Dataloader (Training, Validation)
-    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split=0.25, batch_size=16)
+    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split=0.25, batch_size=32)
     if rank == 0:
         print('AutoEncoder Model Data Imported.')
     model_autoencoder = Grey2RGBAutoEncoder()
@@ -80,10 +80,10 @@ def main(rank):
         print('-'*20) # Makes Output Readable
 
     # Initialize LSTM Model and Import Dataloader (Training, Validation)
-    data_lstm_train, data_lstm_val = dataset.get_lstm_batches(val_split=0.2, sequence_length=30, batch_size=6)
+    data_lstm_train, data_lstm_val = dataset.get_lstm_batches(val_split=0.2, sequence_length=30, batch_size=12)
     if rank == 0:
         print('LSTM Model Data Imported.')
-    model_lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(3, 3), num_layers=3, alpha=0.6)
+    model_lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(3, 3), num_layers=3, alpha=0.5)
     if rank == 0:
         print('LSTM Model Initialized.')
         print('-'*20) # Makes Output Readable
