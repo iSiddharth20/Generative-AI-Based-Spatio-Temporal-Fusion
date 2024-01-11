@@ -19,7 +19,7 @@ from autoencoder_model import Grey2RGBAutoEncoder
 from lstm_model import ConvLSTM
 
 # Define Universal Parameters
-i = 0 # resolutions[i] to use in the Proejct as Image Size
+i = 3 # resolutions[i] to use in the Proejct as Image Size
 resolutions = [
     (270, 480),
     (360, 640),
