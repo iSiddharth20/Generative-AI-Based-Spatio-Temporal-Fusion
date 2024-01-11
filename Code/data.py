@@ -36,7 +36,7 @@ class CustomDataset(Dataset):
         self.transform = transforms.Compose([
             transforms.Resize(self.image_size),
             transforms.ToTensor(),
-            Lambda(lambda x: torch.cat([x, torch.zeros_like(x), torch.zeros_like(x)]) if x.shape[0] == 1 and not self.for_lstm else x)
+            Lambda(lambda x: transforms.Grayscale()(x) if self.for_lstm else x)
             ])
 
     # Return the total number of images

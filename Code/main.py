@@ -58,7 +58,7 @@ def main_worker(rank, world_size):
 def main(rank):
     # Initialize Dataset Object (PyTorch Tensors)
     try:
-        dataset_ae = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, resolutions[i], for_lstm=True)
+        dataset_ae = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, resolutions[i])
         dataset_lstm = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, resolutions[i], for_lstm=True)
         if rank == 0:
             print('-'*20) # Makes Output Readable
