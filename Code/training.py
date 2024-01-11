@@ -12,6 +12,7 @@ Initialize Best Validation Loss to Infinity as we will save model with lowest va
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
+from torch.cuda.amp import autocast, GradScaler
 
 # Define Training Class
 class Trainer():
@@ -29,6 +30,8 @@ class Trainer():
             self.model = DDP(self.model, device_ids=[rank], find_unused_parameters=True)
         # Define the path to save the model
         self.model_save_path = model_save_path if rank == 0 else None  # Only save on master process
+        # For mixed precision training
+        self.scaler = GradScaler()
     
     def cleanup_ddp(self):
         if dist.is_initialized():
@@ -52,11 +55,17 @@ class Trainer():
             # Training Loop
             for input, target in train_loader:  # Input - Grayscale Image, Target - RGB Image
                 input, target = input.to(self.device), target.to(self.device)
-                output = self.model(input)  # Forward Pass
-                loss = self.loss_function(output, target)  # Compute Training Loss
                 self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
-                loss.backward()  # Backward Pass
-                self.optimizer.step()  # Update Model Parameters
+                # Use autocast for mixed precision training
+                with autocast():
+                    output = self.model(input)  # Forward Pass
+                    loss = self.loss_function(output, target)  # Compute Training Loss
+                # Use GradScaler for mixed precision training
+                self.scaler.scale(loss).backward()  # Backward Pass
+                self.scaler.step(self.optimizer)  # Update Model Parameters
+                self.scaler.update()
+                self.optimizer.zero_grad()  # Zero gradients to prepare for next loop
+                torch.cuda.empty_cache()  # Free up memory
             self.scheduler.step()  # Update Learning Rate
             # Validation Loss Calculation
             self.model.eval()  # Set the Model to Evaluation Mode
@@ -74,8 +83,8 @@ class Trainer():
                 best_epoch = epoch+1
                 best_train_loss = loss.item()
                 self.save_model()  # Save the model
-        # Return the Trained Model and the best epoch's details
-        return self.model, (best_epoch, best_train_loss, best_val_loss)
+        # Return the best epoch's details
+        return (best_epoch, best_train_loss, best_val_loss)
     
     def train_lstm(self, epochs, train_loader, val_loader):
         # Print Names of All Available GPUs (if any) to Train the Model 
@@ -90,11 +99,17 @@ class Trainer():
             # Training loop
             for input_sequence, target_sequence in train_loader:
                 input_sequence, target_sequence = input_sequence.to(self.device), target_sequence.to(self.device)
-                self.optimizer.zero_grad()  # Zero gradients
-                output_sequence, _ = self.model(input_sequence)  # Forward pass, ignore the second output (hidden state tuple)
-                loss = self.loss_function(output_sequence, target_sequence)  # Compute loss
-                loss.backward()  # Backward pass
-                self.optimizer.step()  # Update parameters
+                self.optimizer.zero_grad()  # Zero gradients to prepare for Backward Pass
+                # Use autocast for mixed precision training
+                with autocast():
+                    output_sequence, _ = self.model(input_sequence)  # Forward pass, ignore the second output (hidden state tuple)
+                    loss = self.loss_function(output_sequence, target_sequence) # Compute Training Loss
+                # Use GradScaler for mixed precision training
+                self.scaler.scale(loss).backward()  # Backward Pass
+                self.scaler.step(self.optimizer)  # Update Model Parameters
+                self.scaler.update()
+                self.optimizer.zero_grad()  # Zero gradients to prepare for next loop
+                torch.cuda.empty_cache()  # Free up memory
             self.scheduler.step()  # Update Learning Rate
             # Validation loop
             self.model.eval()  # Set the model to evaluation mode
@@ -115,5 +130,5 @@ class Trainer():
                 best_epoch = epoch+1
                 best_train_loss = loss.item()
                 self.save_model()
-        # Return the trained model and the best epoch's details
-        return self.model, (best_epoch, best_train_loss, best_val_loss)
+        # Return the best epoch's details
+        return (best_epoch, best_train_loss, best_val_loss)

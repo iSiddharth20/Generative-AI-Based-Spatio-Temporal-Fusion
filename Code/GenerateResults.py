@@ -19,7 +19,7 @@ from autoencoder_model import Grey2RGBAutoEncoder
 from lstm_model import ConvLSTM
 
 # Define Universal Parameters
-i = 3 # resolutions[i] to use in the Proejct as Image Size
+i = 2 # resolutions[i] to use in the Proejct as Image Size
 resolutions = [
     (270, 480),
     (360, 640),
@@ -107,11 +107,13 @@ def enhance(rank, world_size, img_inp_dir, img_exp_dir, lstm_path, autoencoder_p
     with torch.no_grad():
         local_output_sequence, _ = lstm(local_tensors_lstm)
         local_output_sequence = local_output_sequence.squeeze(0)
+    torch.cuda.empty_cache()  # Free up memory
     local_output_sequence = torch.cat([local_output_sequence, torch.zeros_like(local_output_sequence), torch.zeros_like(local_output_sequence)], dim=1)
     # Interleave the input and output images
     interleaved_sequence = torch.stack([t for pair in zip(local_tensors.squeeze(0), local_output_sequence) for t in pair])
     with torch.no_grad():
         local_output_enhanced = torch.stack([autoencoder(t.unsqueeze(0)) for t in interleaved_sequence]).squeeze(1)
+    torch.cuda.empty_cache()  # Free up memory
     save_images(local_output_enhanced, img_exp_dir, global_start_idx)
     cleanup()
 

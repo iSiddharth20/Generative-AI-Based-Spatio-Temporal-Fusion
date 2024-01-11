@@ -25,7 +25,7 @@ autoencoder_rgb_dir = '../Dataset/AutoEncoder/RGB'
 lstm_gray_sequences_dir = '../Dataset/LSTM'
 
 # Define Universal Parameters
-i = 3 # resolutions[i] to use in the Proejct as Image Size
+i = 2 # resolutions[i] to use in the Proejct as Image Size
 resolutions = [
     (270, 480),
     (360, 640),
@@ -172,11 +172,11 @@ def main(rank):
     ''' 
     # Method-1
     try:
-        epochs = 10
+        epochs = 100
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
             start_time = time.time()
-        model_autoencoder_m1, stats_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        stats_autoencoder_m1 = trainer_autoencoder_baseline.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
         if rank == 0:
             print('Method-1 AutoEncoder Training Complete.')
     except Exception as e:
@@ -191,11 +191,11 @@ def main(rank):
     if rank == 0:
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 10
+        epochs = 100
         if rank == 0:
             print('Method-1 LSTM Training Start')
             start_time = time.time()
-        model_lstm_m1, stats_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
+        stats_lstm_m1 = trainer_lstm_baseline.train_lstm(epochs, data_lstm_train, data_lstm_val)
         if rank == 0:
             print('Method-1 LSTM Training Complete.')
     except Exception as e:
@@ -212,11 +212,11 @@ def main(rank):
 
     # Method-2
     try:
-        epochs = 10
+        epochs = 100
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
             start_time = time.time()
-        model_autoencoder_m2, stats_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
+        stats_autoencoder_m2 = trainer_autoencoder_m2.train_autoencoder(epochs, data_autoencoder_train, data_autoencoder_val)
         if rank == 0:
             print('Method-2 AutoEncoder Training Complete.')
     except Exception as e:
@@ -238,11 +238,11 @@ def main(rank):
         print("Method-3 AutoEncoder == Method-1 AutoEncoder, No Need To Train Again.")
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 10
+        epochs = 100
         if rank == 0:
             print('Method-3 LSTM Training Start.')
             start_time = time.time()
-        model_lstm_m3, stats_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
+        stats_lstm_m3 = trainer_lstm_m3.train_lstm(epochs, data_lstm_train, data_lstm_val)
         if rank == 0:
             print('Method-3 LSTM Training Complete.')
     except Exception as e:
