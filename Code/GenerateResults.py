@@ -3,31 +3,69 @@ Generate Results from Trained Models
 '''
 
 # Import Necessary Libraries
-from PIL import Image
-import torch
-from torchvision import transforms
+import platform
 import os
+import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.multiprocessing import Process
+from PIL import Image
+from torchvision import transforms
+import glob
+import shutil
 
-# Check if CUDA is available and set the device accordingly
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Import Model Architectures
+# Import Model Definations
 from autoencoder_model import Grey2RGBAutoEncoder
-autoencoder = Grey2RGBAutoEncoder()
 from lstm_model import ConvLSTM
-lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(3, 3), num_layers=3, alpha=0.6)
-def load_model(model, model_path):
-    # Load the state dictionary from the given path
-    state_dict = torch.load(model_path)
-    # Create a new state dictionary without the 'module.' prefix
-    new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
-    # Load the weights into the model using the new state dictionary
-    model.load_state_dict(new_state_dict)
-    return model
 
 # Define Universal Variables
 image_width = 1280
 image_height = 720
+
+# Define Backend for Distributed Computing
+def get_backend():
+    system_type = platform.system()
+    if system_type == "Linux":
+        return "nccl"
+    else:
+        return "gloo"
+
+# Function to initialize the process group for distributed computing
+def setup(rank, world_size):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+    dist.init_process_group(backend=get_backend(), rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
+# Function to clean up the process group after computation
+def cleanup():
+    dist.destroy_process_group()
+
+# The function to load your models
+def load_model(model, model_path, device):
+    map_location = lambda storage, loc: storage.cuda(device)
+    state_dict = torch.load(model_path, map_location=map_location)
+    new_state_dict = {k.replace('module.', ''): v for k, v in state_dict.items()}
+    model.load_state_dict(new_state_dict)
+    # Move the model to the device and wrap the model with DDP after its state_dict has been loaded
+    model = model.to(device)
+    model = DDP(model, device_ids=[device])
+    return model
+
+# Define the function to save images
+def save_images(img_seq, img_dir, global_start_idx):
+    to_pil = transforms.ToPILImage()
+    for i, image_tensor in enumerate(img_seq):
+        global_idx = global_start_idx + i  # Calculate the global index
+        image = to_pil(image_tensor.cpu())
+        image.save(f'{img_dir}/image_{global_idx:04d}.tif')
+
+def reorder_and_save_images(img_exp_dir, output_dir):
+    image_paths = glob.glob(os.path.join(img_exp_dir, 'image_*.tif'))
+    sorted_image_paths = sorted(image_paths, key=lambda x: int(os.path.basename(x).split('_')[1].split('.')[0]))
+    for i, img_path in enumerate(sorted_image_paths):
+        img = Image.open(img_path)
+        img.save(os.path.join(output_dir, f'enhanced_sequence_{i:04d}.tif'))
 
 # Define the Transformation
 transform = transforms.Compose([
@@ -36,120 +74,75 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-def save_images(img_seq, img_dir):
-    print("Saving images...")
-    # Define the transformation to convert the tensors to PIL images
-    to_pil = transforms.ToPILImage()
-    # Iterate over the tensors in out_seq_enhanced
-    for i, image_tensor in enumerate(img_seq):
-        # Convert the tensor to a PIL image
-        image = to_pil(image_tensor)
-        # Save the image
-        image.save(f'{img_dir}/image_{i}.tif')
-    print("Images saved successfully.")
-
-def EnhanceSequence(model_lstm, model_autoencoder, img_inp_dir, export_seq=False, img_exp_dir=None):
-    print("Loading and transforming images for generation...")
-    # Load Images and Transform for Generation
+# The main function that will be executed by each process
+def enhance(rank, world_size, img_inp_dir, img_exp_dir, lstm_path, autoencoder_path):
+    setup(rank, world_size)
+    lstm_model = ConvLSTM(input_dim=1, hidden_dims=[1, 1, 1], kernel_size=(3, 3), num_layers=3, alpha=0.6)
+    lstm = load_model(lstm_model, lstm_path, rank)
+    lstm.eval()
+    autoencoder_model = Grey2RGBAutoEncoder()
+    autoencoder = load_model(autoencoder_model, autoencoder_path, rank)
+    autoencoder.eval()
     image_files = os.listdir(img_inp_dir)
-    images = [Image.open(os.path.join(img_inp_dir, image_file)) for image_file in image_files]
-    inputs = torch.stack([transform(image) for image in images])
-    inputs = inputs.unsqueeze(0)
-    inputs = inputs.to(device)
-    print("Images loaded and transformed.")
+    per_gpu = (len(image_files) + world_size - 1) // world_size
+    start_idx = rank * per_gpu
+    end_idx = min(start_idx + per_gpu, len(image_files))
+    global_start_idx = start_idx
+    local_images = [Image.open(os.path.join(img_inp_dir, image_files[i])) for i in range(start_idx, end_idx)]
+    local_tensors = torch.stack([transform(image) for image in local_images]).unsqueeze(0).to(rank)
+    with torch.no_grad():
+        local_output_sequence, _ = lstm(local_tensors)
+        local_output_sequence = local_output_sequence.squeeze(0)
+    # Interleave the input and output images
+    interleaved_sequence = torch.stack([t for pair in zip(local_tensors.squeeze(0), local_output_sequence) for t in pair])
+    with torch.no_grad():
+        local_output_enhanced = torch.stack([autoencoder(t.unsqueeze(0)) for t in interleaved_sequence]).squeeze(1)
+    save_images(local_output_enhanced, img_exp_dir, global_start_idx)
+    cleanup()
 
-    print("Passing the input image sequence to LSTM model...")
-    # Pass the Input Image Sequence to LSTM Model
-    print(inputs.shape)
-    out_seq , _ = model_lstm(inputs)
-    print("Image sequence passed to LSTM model.")
 
-    print("Creating resulting sequence...")
-    # Initialize an empty list to store the resulting sequence
-    resulting_sequence = []
-    # Iterate over the images in inputs and out_seq
-    for input_image, generated_image in zip(inputs, out_seq):
-        # Add the input image to the resulting sequence
-        resulting_sequence.append(input_image)
-        # Add the generated image to the resulting sequence
-        resulting_sequence.append(generated_image)
-    # If inputs has one more image than out_seq, add the last image from inputs to the resulting sequence
-    if len(inputs) > len(out_seq):
-        resulting_sequence.append(inputs[-1])
-    print("Resulting sequence created.")
+if __name__ == "__main__":
+    world_size = torch.cuda.device_count()
+    # Input Sequence Directory (All Methods)
+    img_sequence_inp_dir = r'../Dataset/Inference/InputSequence'
+    # Intermediate Results will be Stored in this Directory which later wll be re-ordered (All Methods)
+    temp_dir = r'../Dataset/Inference/OutputSequence/Temp'
+    os.makedirs(temp_dir, exist_ok=True)
 
-    print("Enhancing images...")
-    # Convert the list of images in the resulting sequence to a PyTorch tensor
-    resulting_sequence = torch.stack(resulting_sequence)
-    # Initialize an empty list to store the enhanced images
-    out_seq_enhanced = []
-    # Iterate over the images in the resulting sequence
-    for image in resulting_sequence:
-        # Pass the image tensor through the AutoEncoder model
-        enhanced_image = model_autoencoder(image.to(device))
-        # Remove the extra dimension from the enhanced image and add it to out_seq_enhanced
-        out_seq_enhanced.append(enhanced_image.squeeze(0))
-    print("Images enhanced.")
+    '''Working Directories for (Method-1)'''
+    autoencoder_path = r'../Models/Method1/model_autoencoder_m1.pth'
+    lstm_path = r'../Models/Method1/model_lstm_m1.pth'
+    img_sequence_out_dir = r'../Dataset/Inference/OutputSequence/Method1/'
+    os.makedirs(img_sequence_out_dir, exist_ok=True)
 
-    # Convert the list of enhanced images to a PyTorch tensor
-    out_seq_enhanced = torch.stack(out_seq_enhanced)
-    if export_seq:
-        save_images(out_seq_enhanced, img_exp_dir)
+    '''Working Directories for (Method-2)'''
+    # autoencoder_path = r'../Models/Method2/model_autoencoder_m2.pth'
+    # lstm_path = r'../Models/Method1/model_lstm_m1.pth'
+    # img_sequence_out_dir = r'../Dataset/Inference/OutputSequence/Method2/'
+    # os.makedirs(img_sequence_out_dir, exist_ok=True)
 
-# Define Working Directories (Create Output Directories if they Don't Exist)
-img_sequence_inp_dir = r'../Dataset/Inference/InputSequence'
-img_sequence_out_dir_m1 = r'../Dataset/Inference/OutputSequence/Method1/'
-os.makedirs(img_sequence_out_dir_m1, exist_ok=True) # Creating Directory for Output Sequence 
-img_sequence_out_dir_m2 = r'../Dataset/Inference/OutputSequence/Method2/'
-os.makedirs(img_sequence_out_dir_m2, exist_ok=True) # Creating Directory for Output Sequence 
-img_sequence_out_dir_m3 = r'../Dataset/Inference/OutputSequence/Method3/'
-os.makedirs(img_sequence_out_dir_m3, exist_ok=True) # Creating Directory for Output Sequence 
-img_sequence_out_dir_m4 = r'../Dataset/Inference/OutputSequence/Method4/'
-os.makedirs(img_sequence_out_dir_m4, exist_ok=True) # Creating Directory for Output Sequence 
-print('Working Directories Defined')
-print('-'*20) # Makes Output Readable
+    '''Working Directories for (Method-3)'''
+    # autoencoder_path = r'../Models/Method1/model_autoencoder_m1.pth'
+    # lstm_path = r'../Models/Method3/model_lstm_m3.pth'
+    # img_sequence_out_dir = r'../Dataset/Inference/OutputSequence/Method3/'
+    # os.makedirs(img_sequence_out_dir, exist_ok=True)
 
-# Load and Set the AutoEncoder Models to evaluation mode
-try:
-    model_autoencoder_m1 = load_model(autoencoder, r'../Models/Method1/model_autoencoder_m1.pth')
-    model_autoencoder_m1 = model_autoencoder_m1.to(device)
-    model_autoencoder_m1.eval()
-    print('Method 1 AutoEncoder Model Loaded')
-    print('-'*10) # Makes Output Readable
-except:
-    print('Method 1 AutoEncoder Model Not Found')
-    print('-'*20)
-try:
-    model_autoencoder_m2 = load_model(autoencoder, r'../Models/Method2/model_autoencoder_m2.pth')
-    model_autoencoder_m2 = model_autoencoder_m2.to(device)
-    model_autoencoder_m2.eval()
-    print('Method 2 AutoEncoder Model Loaded')
-    print('-'*10) # Makes Output Readable
-except:
-    print('Method 2 AutoEncoder Model Not Found')
-    print('-'*20)
+    '''Working Directories for (Method-4)'''
+    # autoencoder_path = r'../Models/Method2/model_autoencoder_m2.pth'
+    # lstm_path = r'../Models/Method3/model_lstm_m3.pth'
+    # img_sequence_out_dir = r'../Dataset/Inference/OutputSequence/Method4/'
+    # os.makedirs(img_sequence_out_dir, exist_ok=True)
 
-# Load and Set the LSTM Models to evaluation mode
-try:
-    model_lstm_m1 = load_model(lstm, r'../Models/Method1/model_lstm_m1.pth')
-    model_lstm_m1 = model_lstm_m1.to(device)
-    model_lstm_m1.eval()  # Set the model to evaluation mode
-    print('Method 1 LSTM Model Loaded')
-    print('-'*10) # Makes Output Readable
-except:
-    print('Method 1 LSTM Model Not Found')
-    print('-'*20)
-try:
-    model_lstm_m3 = load_model(lstm, r'../Models/Method3/model_lstm_m3.pth')
-    model_lstm_m3 = model_lstm_m3.to(device)
-    model_lstm_m3.eval()  # Set the model to evaluation mode
-    print('Method 3 LSTM Model Loaded')
-    print('-'*10) # Makes Output Readable
-except:
-    print('Method 3 LSTM Model Not Found')
-    print('-'*20)
+    processes = []
+    for rank in range(world_size):
+        p = Process(target=enhance, args=(rank, world_size, img_sequence_inp_dir, temp_dir, lstm_path, autoencoder_path))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
 
-EnhanceSequence(model_lstm_m1, model_autoencoder_m1, img_sequence_inp_dir, export_seq=True, img_exp_dir=img_sequence_out_dir_m1)
-# EnhanceSequence(model_lstm_m1, model_autoencoder_m2, img_sequence_inp_dir, export_seq=True, img_exp_dir=img_sequence_out_dir_m2)
-# EnhanceSequence(model_lstm_m3, model_autoencoder_m1, img_sequence_inp_dir, export_seq=True, img_exp_dir=img_sequence_out_dir_m3)
-# EnhanceSequence(model_lstm_m3, model_autoencoder_m2, img_sequence_inp_dir, export_seq=True, img_exp_dir=img_sequence_out_dir_m4)
+    # Reorder images once processing by all GPUs is complete
+    reorder_and_save_images(temp_dir, img_sequence_out_dir)  
+    # Delete all Intermediate Results
+    shutil.rmtree(temp_dir)
+
