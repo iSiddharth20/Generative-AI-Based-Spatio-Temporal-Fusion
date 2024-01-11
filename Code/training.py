@@ -64,7 +64,6 @@ class Trainer():
                 self.scaler.scale(loss).backward()  # Backward Pass
                 self.scaler.step(self.optimizer)  # Update Model Parameters
                 self.scaler.update()
-                self.optimizer.zero_grad()  # Zero gradients to prepare for next loop
                 torch.cuda.empty_cache()  # Free up memory
             self.scheduler.step()  # Update Learning Rate
             # Validation Loss Calculation
@@ -108,7 +107,6 @@ class Trainer():
                 self.scaler.scale(loss).backward()  # Backward Pass
                 self.scaler.step(self.optimizer)  # Update Model Parameters
                 self.scaler.update()
-                self.optimizer.zero_grad()  # Zero gradients to prepare for next loop
                 torch.cuda.empty_cache()  # Free up memory
             self.scheduler.step()  # Update Learning Rate
             # Validation loop
