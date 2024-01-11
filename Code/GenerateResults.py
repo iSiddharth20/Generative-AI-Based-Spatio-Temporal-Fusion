@@ -108,7 +108,7 @@ def enhance(rank, world_size, img_inp_dir, img_exp_dir, lstm_path, autoencoder_p
         local_output_sequence, _ = lstm(local_tensors_lstm)
         local_output_sequence = local_output_sequence.squeeze(0)
     torch.cuda.empty_cache()  # Free up memory
-    local_output_sequence = torch.cat([local_output_sequence, torch.zeros_like(local_output_sequence), torch.zeros_like(local_output_sequence)], dim=1)
+    local_output_sequence = torch.cat([local_output_sequence, torch.full_like(local_output_sequence, 0.5), torch.full_like(local_output_sequence, 0.5)], dim=1)
     # Interleave the input and output images
     interleaved_sequence = torch.stack([t for pair in zip(local_tensors.squeeze(0), local_output_sequence) for t in pair])
     with torch.no_grad():
