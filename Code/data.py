@@ -12,18 +12,20 @@ from torch.utils.data import DataLoader, Dataset, random_split
 import torchvision.transforms as transforms
 import torch
 from torch.utils.data.distributed import DistributedSampler
+from torchvision.transforms import Lambda
 
 # Allow loading of truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Define a custom dataset class
 class CustomDataset(Dataset):
-    def __init__(self, autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, image_size, valid_exts=['.tif', '.tiff']):
+    def __init__(self, autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, image_size, for_lstm=False, valid_exts=['.tif', '.tiff']):
         # Initialize directory paths and parameters
         self.grayscale_dir = Path(autoencoder_grayscale_dir)  # Directory for AutoEncoder grayscale images
         self.rgb_dir = Path(autoencoder_rgb_dir)  # Directory for AutoEncoder RGB images
         self.lstm_dir = Path(lstm_gray_sequences_dir)  # Directory for LSTM grayscale sequences
         self.image_size = image_size  # Size to which images will be resized
+        self.for_lstm = for_lstm  # Whether the image is for the LSTM or the AutoEncoder
         self.valid_exts = valid_exts  # Valid file extensions
         # Get list of valid image filenames
         self.autoencoder_filenames = [f for f in self.grayscale_dir.iterdir() if f.suffix in self.valid_exts]
@@ -33,7 +35,9 @@ class CustomDataset(Dataset):
         # Define transformations: resize and convert to tensor
         self.transform = transforms.Compose([
             transforms.Resize(self.image_size),
-            transforms.ToTensor()])
+            transforms.ToTensor(),
+            Lambda(lambda x: torch.cat([x, torch.zeros_like(x), torch.zeros_like(x)]) if x.shape[0] == 1 and not self.for_lstm else x)
+            ])
 
     # Return the total number of images
     def __len__(self, lstm=False):

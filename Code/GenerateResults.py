@@ -18,9 +18,18 @@ import shutil
 from autoencoder_model import Grey2RGBAutoEncoder
 from lstm_model import ConvLSTM
 
-# Define Universal Variables
-image_width = 1280
-image_height = 720
+# Define Universal Parameters
+i = 0 # resolutions[i] to use in the Proejct as Image Size
+resolutions = [
+    (270, 480),
+    (360, 640),
+    (480, 854),
+    (540, 960),
+    (720, 1280),
+    (900, 1600),
+    (1080, 1920),
+    (1440, 2560)
+]
 
 # Define Backend for Distributed Computing
 def get_backend():
@@ -67,13 +76,6 @@ def reorder_and_save_images(img_exp_dir, output_dir):
         img = Image.open(img_path)
         img.save(os.path.join(output_dir, f'enhanced_sequence_{i:04d}.tif'))
 
-# Define the Transformation
-transform = transforms.Compose([
-    transforms.Resize((image_height, image_width)),
-    transforms.Grayscale(),  # Convert the images to grayscale
-    transforms.ToTensor(),
-])
-
 # The main function that will be executed by each process
 def enhance(rank, world_size, img_inp_dir, img_exp_dir, lstm_path, autoencoder_path):
     setup(rank, world_size)
@@ -89,10 +91,23 @@ def enhance(rank, world_size, img_inp_dir, img_exp_dir, lstm_path, autoencoder_p
     end_idx = min(start_idx + per_gpu, len(image_files))
     global_start_idx = start_idx
     local_images = [Image.open(os.path.join(img_inp_dir, image_files[i])) for i in range(start_idx, end_idx)]
+    # Apply grayscale transformation only to the LSTM input tensors
+    transform_lstm = transforms.Compose([
+        transforms.Resize(resolutions[i]),
+        transforms.Grayscale(),  # Convert the images to grayscale
+        transforms.ToTensor(),
+    ])
+    local_tensors_lstm = torch.stack([transform_lstm(image) for image in local_images]).unsqueeze(0).to(rank)
+    # Do not apply grayscale transformation to the other input tensors
+    transform = transforms.Compose([
+        transforms.Resize(resolutions[i]),
+        transforms.ToTensor(),
+    ])
     local_tensors = torch.stack([transform(image) for image in local_images]).unsqueeze(0).to(rank)
     with torch.no_grad():
-        local_output_sequence, _ = lstm(local_tensors)
+        local_output_sequence, _ = lstm(local_tensors_lstm)
         local_output_sequence = local_output_sequence.squeeze(0)
+    local_output_sequence = torch.cat([local_output_sequence, torch.zeros_like(local_output_sequence), torch.zeros_like(local_output_sequence)], dim=1)
     # Interleave the input and output images
     interleaved_sequence = torch.stack([t for pair in zip(local_tensors.squeeze(0), local_output_sequence) for t in pair])
     with torch.no_grad():

@@ -25,8 +25,17 @@ autoencoder_rgb_dir = '../Dataset/AutoEncoder/RGB'
 lstm_gray_sequences_dir = '../Dataset/LSTM'
 
 # Define Universal Parameters
-image_width = 1280
-image_height = 720
+i = 3 # resolutions[i] to use in the Proejct as Image Size
+resolutions = [
+    (270, 480),
+    (360, 640),
+    (480, 854),
+    (540, 960),
+    (720, 1280),
+    (900, 1600),
+    (1080, 1920),
+    (1440, 2560)
+]
 
 def get_backend():
     system_type = platform.system()
@@ -49,7 +58,8 @@ def main_worker(rank, world_size):
 def main(rank):
     # Initialize Dataset Object (PyTorch Tensors)
     try:
-        dataset = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, (image_height, image_width))
+        dataset_ae = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, resolutions[i])
+        dataset_lstm = CustomDataset(autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, resolutions[i], for_lstm=True)
         if rank == 0:
             print('Importing Dataset Complete.')
     except Exception as e:
@@ -71,7 +81,7 @@ def main(rank):
         print('-'*20) # Makes Output Readable
 
     # Initialize AutoEncoder Model and Import Dataloader (Training, Validation)
-    data_autoencoder_train, data_autoencoder_val = dataset.get_autoencoder_batches(val_split=0.25, batch_size=32)
+    data_autoencoder_train, data_autoencoder_val = dataset_ae.get_autoencoder_batches(val_split=0.25, batch_size=32)
     if rank == 0:
         print('AutoEncoder Model Data Imported.')
     model_autoencoder = Grey2RGBAutoEncoder()
@@ -80,7 +90,7 @@ def main(rank):
         print('-'*20) # Makes Output Readable
 
     # Initialize LSTM Model and Import Dataloader (Training, Validation)
-    data_lstm_train, data_lstm_val = dataset.get_lstm_batches(val_split=0.2, sequence_length=30, batch_size=12)
+    data_lstm_train, data_lstm_val = dataset_lstm.get_lstm_batches(val_split=0.2, sequence_length=30, batch_size=12)
     if rank == 0:
         print('LSTM Model Data Imported.')
     model_lstm = ConvLSTM(input_dim=1, hidden_dims=[1,1,1], kernel_size=(3, 3), num_layers=3, alpha=0.5)
@@ -106,7 +116,7 @@ def main(rank):
         print('Method-1 AutoEncoder Trainer Initialized.')
     model_save_path_lstm = '../Models/Method1/model_lstm_m1.pth'
     optimizer = torch.optim.SGD(model_lstm.parameters(), lr=0.01, momentum=0.9)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.8)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
     trainer_lstm_baseline = Trainer(model=model_lstm, 
                                     loss_function=loss_mse, 
                                     optimizer=optimizer,
@@ -121,7 +131,7 @@ def main(rank):
     os.makedirs('../Models/Method2', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method2/model_autoencoder_m2.pth'
     optimizer = torch.optim.Adam(model_autoencoder.parameters(), lr=0.01)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.4)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.4)
     trainer_autoencoder_m2 = Trainer(model=model_autoencoder, 
                                      loss_function=loss_mep, 
                                      optimizer=optimizer,
@@ -139,7 +149,7 @@ def main(rank):
         print('Method-3 AutoEncoder == Method-1 AutoEncoder')
     model_save_path_lstm = '../Models/Method3/model_lstm_m3.pth'
     optimizer = torch.optim.SGD(model_lstm.parameters(), lr=0.01, momentum=0.9)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.8)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.8)
     trainer_lstm_m3 = Trainer(model=model_lstm, 
                               loss_function=loss_ssim, 
                               optimizer=optimizer,
@@ -162,7 +172,7 @@ def main(rank):
     ''' 
     # Method-1
     try:
-        epochs = 100
+        epochs = 10
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
             start_time = time.time()
@@ -181,7 +191,7 @@ def main(rank):
     if rank == 0:
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 100
+        epochs = 10
         if rank == 0:
             print('Method-1 LSTM Training Start')
             start_time = time.time()
@@ -202,7 +212,7 @@ def main(rank):
 
     # Method-2
     try:
-        epochs = 100
+        epochs = 10
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
             start_time = time.time()
@@ -228,7 +238,7 @@ def main(rank):
         print("Method-3 AutoEncoder == Method-1 AutoEncoder, No Need To Train Again.")
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 100
+        epochs = 10
         if rank == 0:
             print('Method-3 LSTM Training Start.')
             start_time = time.time()
