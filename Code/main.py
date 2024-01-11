@@ -95,7 +95,7 @@ def main(rank):
     os.makedirs('../Models/Method1', exist_ok=True) # Creating Directory for Model Saving
     model_save_path_ae = '../Models/Method1/model_autoencoder_m1.pth'
     optimizer = torch.optim.Adam(model_autoencoder.parameters(), lr=0.01)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.4)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.4)
     trainer_autoencoder_baseline = Trainer(model=model_autoencoder, 
                                            loss_function=loss_mse, 
                                            optimizer=optimizer,
@@ -162,7 +162,7 @@ def main(rank):
     ''' 
     # Method-1
     try:
-        epochs = 40
+        epochs = 100
         if rank == 0:
             print('Method-1 AutoEncoder Training Start')
             start_time = time.time()
@@ -181,7 +181,7 @@ def main(rank):
     if rank == 0:
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 40
+        epochs = 100
         if rank == 0:
             print('Method-1 LSTM Training Start')
             start_time = time.time()
@@ -202,7 +202,7 @@ def main(rank):
 
     # Method-2
     try:
-        epochs = 40
+        epochs = 100
         if rank == 0:
             print('Method-2 AutoEncoder Training Start')
             start_time = time.time()
@@ -228,7 +228,7 @@ def main(rank):
         print("Method-3 AutoEncoder == Method-1 AutoEncoder, No Need To Train Again.")
         print('-'*10) # Makes Output Readable
     try:
-        epochs = 40
+        epochs = 100
         if rank == 0:
             print('Method-3 LSTM Training Start.')
             start_time = time.time()
