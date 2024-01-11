@@ -8,6 +8,9 @@ import torch
 from torchvision import transforms
 import os
 
+# Check if CUDA is available and set the device accordingly
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Import Model Architectures
 from autoencoder_model import Grey2RGBAutoEncoder
 autoencoder = Grey2RGBAutoEncoder()
@@ -52,6 +55,7 @@ def EnhanceSequence(model_lstm, model_autoencoder, img_inp_dir, export_seq=False
     images = [Image.open(os.path.join(img_inp_dir, image_file)) for image_file in image_files]
     inputs = torch.stack([transform(image) for image in images])
     inputs = inputs.unsqueeze(0)
+    inputs = inputs.to(device)
     print("Images loaded and transformed.")
 
     print("Passing the input image sequence to LSTM model...")
@@ -82,7 +86,7 @@ def EnhanceSequence(model_lstm, model_autoencoder, img_inp_dir, export_seq=False
     # Iterate over the images in the resulting sequence
     for image in resulting_sequence:
         # Pass the image tensor through the AutoEncoder model
-        enhanced_image = model_autoencoder(image)
+        enhanced_image = model_autoencoder(image.to(device))
         # Remove the extra dimension from the enhanced image and add it to out_seq_enhanced
         out_seq_enhanced.append(enhanced_image.squeeze(0))
     print("Images enhanced.")
@@ -108,6 +112,7 @@ print('-'*20) # Makes Output Readable
 # Load and Set the AutoEncoder Models to evaluation mode
 try:
     model_autoencoder_m1 = load_model(autoencoder, r'../Models/Method1/model_autoencoder_m1.pth')
+    model_autoencoder_m1 = model_autoencoder_m1.to(device)
     model_autoencoder_m1.eval()
     print('Method 1 AutoEncoder Model Loaded')
     print('-'*10) # Makes Output Readable
@@ -116,6 +121,7 @@ except:
     print('-'*20)
 try:
     model_autoencoder_m2 = load_model(autoencoder, r'../Models/Method2/model_autoencoder_m2.pth')
+    model_autoencoder_m2 = model_autoencoder_m2.to(device)
     model_autoencoder_m2.eval()
     print('Method 2 AutoEncoder Model Loaded')
     print('-'*10) # Makes Output Readable
@@ -126,6 +132,7 @@ except:
 # Load and Set the LSTM Models to evaluation mode
 try:
     model_lstm_m1 = load_model(lstm, r'../Models/Method1/model_lstm_m1.pth')
+    model_lstm_m1 = model_lstm_m1.to(device)
     model_lstm_m1.eval()  # Set the model to evaluation mode
     print('Method 1 LSTM Model Loaded')
     print('-'*10) # Makes Output Readable
@@ -134,6 +141,7 @@ except:
     print('-'*20)
 try:
     model_lstm_m3 = load_model(lstm, r'../Models/Method3/model_lstm_m3.pth')
+    model_lstm_m3 = model_lstm_m3.to(device)
     model_lstm_m3.eval()  # Set the model to evaluation mode
     print('Method 3 LSTM Model Loaded')
     print('-'*10) # Makes Output Readable
