@@ -50,22 +50,16 @@ class SSIMLoss(nn.Module):
         self.alpha = alpha
         self.ssim_module = SSIM(data_range=1, size_average=True, channel=1)
 
-    # def forward(self, seq1, seq2):
-    #     N, T = seq1.shape[:2]
-    #     ssim_values = []
-    #     for i in range(N):
-    #        for t in range(T):
-    #         seq1_slice = seq1[i, t:t+1, ...] 
-    #         seq2_slice = seq2[i, t:t+1, ...]
-    #         ssim_val = self.ssim_module(seq1_slice, seq2_slice)
-    #         ssim_values.append(ssim_val) # Compute SSIM for each frame in the sequence
-    #     avg_ssim = torch.stack(ssim_values).mean() # Average SSIM across all frames
-    #     mse_loss = F.mse_loss(seq1, seq2)
-    #     combined_loss = (1 - self.alpha) * mse_loss + self.alpha * (1 - avg_ssim)  # SSIM is maximized, so we subtract from 1
-    #     return combined_loss
-
     def forward(self, seq1, seq2):
-        ssim_val = self.ssim_module(seq1, seq2)
+        N, T = seq1.shape[:2]
+        ssim_values = []
+        for i in range(N):
+           for t in range(T):
+            seq1_slice = seq1[i, t:t+1, ...] 
+            seq2_slice = seq2[i, t:t+1, ...]
+            ssim_val = self.ssim_module(seq1_slice, seq2_slice)
+            ssim_values.append(ssim_val) # Compute SSIM for each frame in the sequence
+        avg_ssim = torch.stack(ssim_values).mean() # Average SSIM across all frames
         mse_loss = F.mse_loss(seq1, seq2)
-        combined_loss = (1 - self.alpha) * mse_loss + self.alpha * (1 - ssim_val)  # SSIM is maximized, so we subtract from 1
+        combined_loss = (1 - self.alpha) * mse_loss + self.alpha * (1 - avg_ssim)  # SSIM is maximized, so we subtract from 1
         return combined_loss
