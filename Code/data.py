@@ -12,20 +12,19 @@ from torch.utils.data import DataLoader, Dataset, random_split
 import torchvision.transforms as transforms
 import torch
 from torch.utils.data.distributed import DistributedSampler
-from torchvision.transforms import Lambda
 
 # Allow loading of truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # Define a custom dataset class
+# Define a custom dataset class
 class CustomDataset(Dataset):
-    def __init__(self, autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, image_size, for_lstm=False, valid_exts=['.tif', '.tiff']):
+    def __init__(self, autoencoder_grayscale_dir, autoencoder_rgb_dir, lstm_gray_sequences_dir, image_size, valid_exts=['.tif', '.tiff']):
         # Initialize directory paths and parameters
         self.grayscale_dir = Path(autoencoder_grayscale_dir)  # Directory for AutoEncoder grayscale images
         self.rgb_dir = Path(autoencoder_rgb_dir)  # Directory for AutoEncoder RGB images
         self.lstm_dir = Path(lstm_gray_sequences_dir)  # Directory for LSTM grayscale sequences
         self.image_size = image_size  # Size to which images will be resized
-        self.for_lstm = for_lstm  # Whether the image is for the LSTM or the AutoEncoder
         self.valid_exts = valid_exts  # Valid file extensions
         # Get list of valid image filenames
         self.autoencoder_filenames = [f for f in self.grayscale_dir.iterdir() if f.suffix in self.valid_exts]
@@ -35,8 +34,7 @@ class CustomDataset(Dataset):
         # Define transformations: resize and convert to tensor
         self.transform = transforms.Compose([
             transforms.Resize(self.image_size),
-            transforms.ToTensor(),
-            Lambda(lambda x: transforms.Grayscale()(x) if self.for_lstm else x)
+            transforms.ToTensor()
             ])
 
     # Return the total number of images
@@ -80,24 +78,20 @@ class CustomDataset(Dataset):
     # Get batches for LSTM training
     def get_lstm_batches(self, val_split, sequence_length, batch_size):
         assert sequence_length % 2 == 0, "The sequence length must be even."
-        # Create a list of all possible start indices for the sequences
         sequence_indices = list(range(0, self.__len__(lstm=True), sequence_length))
-        # Create dataset with valid sequences only
         train_dataset = []
         val_dataset = []
         train_end = int((1.0 - val_split) * sequence_length)
         for start in sequence_indices:
             end = start + sequence_length
-            # Make sure we don't go out of bounds
             if end <= self.__len__(lstm=True):
                 sequence = self.transform_sequence(self.lstm_filenames[start:end], lstm=True)
-                sequence_input_train = sequence[:train_end:2]  # Odd-indexed images for training
-                sequence_target_train = sequence[1:train_end:2]  # Even-indexed images for training
-                sequence_input_val = sequence[train_end::2]  # Odd-indexed images for validation
-                sequence_target_val = sequence[train_end+1::2]  # Even-indexed images for validation
+                sequence_input_train = sequence[:train_end:2]
+                sequence_target_train = sequence[1:train_end:2]
+                sequence_input_val = sequence[train_end::2]
+                sequence_target_val = sequence[train_end+1::2]
                 train_dataset.append((sequence_input_train, sequence_target_train))
                 val_dataset.append((sequence_input_val, sequence_target_val))
-        # Create the data loaders for training and validation datasets
         train_sampler = DistributedSampler(train_dataset)
         val_sampler = DistributedSampler(val_dataset)
         train_loader = DataLoader(train_dataset, batch_size=batch_size, pin_memory=True, sampler=train_sampler)
@@ -106,4 +100,5 @@ class CustomDataset(Dataset):
 
     def transform_sequence(self, filenames, lstm=False):
         images = [self.transform(Image.open(f if not lstm else self.lstm_dir / f.name)) for f in filenames]
-        return torch.stack(images) # Stack to form a sequence tensor
+        sequence = torch.stack(images)
+        return sequence
