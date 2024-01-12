@@ -19,7 +19,7 @@ from autoencoder_model import Grey2RGBAutoEncoder
 from lstm_model import ConvLSTM
 
 # Define Universal Parameters
-i = 1 # resolutions[i] to use in the Proejct as Image Size
+i = 0 # resolutions[i] to use in the Proejct as Image Size
 resolutions = [
     (270, 480),
     (360, 640),
@@ -79,7 +79,7 @@ def reorder_and_save_images(img_exp_dir, output_dir):
 # The main function that will be executed by each process
 def enhance(rank, world_size, img_inp_dir, img_exp_dir, lstm_path, autoencoder_path):
     setup(rank, world_size)
-    lstm_model = ConvLSTM(input_dim=1, hidden_dims=[1, 1, 1], kernel_size=(3, 3), num_layers=3, alpha=0.6)
+    lstm_model = ConvLSTM(input_dim=3, hidden_dims=[1, 1, 1], kernel_size=(3, 3), num_layers=3, alpha=0.6)
     lstm = load_model(lstm_model, lstm_path, rank)
     lstm.eval()
     autoencoder_model = Grey2RGBAutoEncoder()
@@ -108,7 +108,6 @@ def enhance(rank, world_size, img_inp_dir, img_exp_dir, lstm_path, autoencoder_p
         local_output_sequence, _ = lstm(local_tensors_lstm)
         local_output_sequence = local_output_sequence.squeeze(0)
     torch.cuda.empty_cache()  # Free up memory
-    local_output_sequence = torch.cat([local_output_sequence, torch.full_like(local_output_sequence, 0), torch.full_like(local_output_sequence, 0)], dim=1)
     # Interleave the input and output images
     interleaved_sequence = torch.stack([t for pair in zip(local_tensors.squeeze(0), local_output_sequence) for t in pair])
     with torch.no_grad():
