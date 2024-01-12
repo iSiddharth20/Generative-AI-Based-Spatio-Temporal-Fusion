@@ -45,10 +45,10 @@ Class for Composite Loss with Structural Similarity Index Measure (SSIM) Loss
     - In PyTorch, loss is minimized, by doing 1 - SSIM, minimizing the loss function will lead to maximization of SSIM
 '''
 class SSIMLoss(nn.Module):
-    def __init__(self, alpha=0.1):
+    def __init__(self, alpha=0.1, num_channels=3):
         super(SSIMLoss, self).__init__()
         self.alpha = alpha
-        self.ssim_module = SSIM(data_range=1, size_average=True, channel=1)
+        self.ssim_module = SSIM(data_range=1, size_average=True, channel=num_channels)
 
     def forward(self, seq1, seq2):
         N, T = seq1.shape[:2]
