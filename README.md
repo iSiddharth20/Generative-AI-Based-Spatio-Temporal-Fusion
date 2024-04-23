@@ -10,6 +10,8 @@ Exploring the forefront of generative AI to enhance video quality through advanc
 This project is a novel approach to enhance video resolution both spatially and temporally using generative AI techniques. By leveraging Auto-Encoders and LSTM Networks, the project aims to interpolate high-temporal-resolution grayscale images and colorize them by learning from a corresponding set of RGB images, ultimately achieving high-fidelity video super-resolution.
 
 #### Checkout the Latest Stable Release [Here](https://github.com/iSiddharth20/Generative-AI-Based-Spatio-Temporal-Fusion/releases)
+#### Checkout the Video Demonstration of Proposed Methodology [Here](https://github.com/iSiddharth20/Generative-AI-Based-Spatio-Temporal-Fusion/issues/27)
+
 
 
 ## Research Objective
@@ -19,8 +21,12 @@ The main goals of the project are:
 
 
 Here's a visual representation of the data transformation:
-- **Current Format**: ` [Grey-1] [Grey-2, RGB-2] [Grey-3] [Grey-4] ... [Grey-8, RGB-8] [Grey-9] [Grey-10]`
-- **Post-Processing**: `[RGB-1] [RGB-1.5] [RGB-2] [RGB-2.5] ... [RGB-8.5] [RGB-9] [RGB-9.5] [RGB-10]`
+- During Training :
+  - **Input**: ` [Grey-1] [Grey-2, RGB-2] [Grey-3] [Grey-4, RGB-4] ... [Grey-8, RGB-8] [Grey-9] [Grey-10, RGB-10]`
+  - **Targeted Output**: `[RGB-1] [RGB-2] [RGB-3] ... [RGB-8] [RGB-9] [RGB-10]`
+- During Inference :
+  - **Input**: ` [Grey-1] [Grey-2] [Grey-3] [Grey-4] ... [Grey-8] [Grey-9] [Grey-10]`
+  - **Expected Output**: `[RGB-1] [RGB-1.5] [RGB-2] [RGB-2.5] ... [RGB-8.5] [RGB-9] [RGB-9.5] [RGB-10]`
 
 ## Resource Links
 
